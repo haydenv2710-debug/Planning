@@ -1,0 +1,19 @@
+workflows:
+  default_workflow:
+    name: Default workflow
+    max_build_duration: 60
+    environment:
+      vars:
+        EXAMPLE_VAR: "value"
+    scripts:
+      - name: Checkout
+        script: |
+          echo "Checking out repo"
+      - name: Install dependencies
+        script: |
+          echo "No-op install step"
+      - name: Run tests
+        script: |
+          echo "No tests configured"
+    artifacts:
+      - build/**
