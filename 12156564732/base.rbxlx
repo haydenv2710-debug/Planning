@@ -1,4 +1,4 @@
-<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Meta name="ExplicitAutoJoints">true</Meta><Item class="Workspace" referent="RBX5"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="Lighting" referent="RBX6"><Properties><string name="Name">Lighting</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX7"><Properties><string name="Name">ReplicatedStorage</string></Properties></Item><Item class="ServerScriptService" referent="RBX10"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX8"><Properties><string name="Name">MogMap</string><ProtectedString name="Source"><![CDATA[-- MogMap : construit "MOG STREET CITY" (tout en studs, lumiere cosy)
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Meta name="ExplicitAutoJoints">true</Meta><Item class="Workspace" referent="RBX6"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="Lighting" referent="RBX7"><Properties><string name="Name">Lighting</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX8"><Properties><string name="Name">ReplicatedStorage</string></Properties></Item><Item class="ServerScriptService" referent="RBX11"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX9"><Properties><string name="Name">MogMap</string><ProtectedString name="Source"><![CDATA[-- MogMap : construit "MOG STREET CITY" (tout en studs, lumiere cosy)
 -- Script a placer dans ServerScriptService
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
@@ -35,9 +35,9 @@ local function fx(class, props)
 	return i
 end
 fx("Atmosphere", { Density = 0.27, Offset = 0.25, Color = Color3.fromRGB(255, 208, 175), Decay = Color3.fromRGB(255, 150, 110), Glare = 0.2, Haze = 1.1 })
-fx("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.1, Saturation = 0.14, TintColor = Color3.fromRGB(255, 244, 232) })
-fx("BloomEffect", { Intensity = 0.55, Size = 28, Threshold = 0.95 })
-fx("SunRaysEffect", { Intensity = 0.1, Spread = 0.6 })
+fx("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.1, Saturation = 0.06, TintColor = Color3.fromRGB(255, 246, 236) })
+fx("BloomEffect", { Intensity = 0.25, Size = 24, Threshold = 1.1 })
+fx("SunRaysEffect", { Intensity = 0.06, Spread = 0.6 })
 
 ------------------------------------------------------------------
 -- OUTILS
@@ -89,20 +89,18 @@ local function gui(p, face, text, color, ppS)
 	l.Font = Enum.Font.GothamBlack
 	l.TextColor3 = color
 	l.Parent = g
-	local s = Instance.new("UIStroke")
-	s.Color = color
-	s.Thickness = 2
-	s.Transparency = 0.55
-	s.Parent = l
 	return l
 end
 
+-- enseigne peinte (plus de neon) : planche sombre, texte creme, liseres de couleur
 local function neonSign(cf, size, text, color, both)
-	local p = part(size, cf, rgb(22, 22, 28), MAT.Plastic, { TopSurface = Enum.SurfaceType.Smooth })
-	gui(p, Enum.NormalId.Front, text, color)
-	if both then gui(p, Enum.NormalId.Back, text, color) end
-	part(V3(size.X + 0.8, 0.3, size.Z + 0.3), cf * CF(0, size.Y / 2 + 0.15, 0), color, MAT.Neon)
-	part(V3(size.X + 0.8, 0.3, size.Z + 0.3), cf * CF(0, -size.Y / 2 - 0.15, 0), color, MAT.Neon)
+	local p = part(size, cf, rgb(46, 40, 38), MAT.Plastic, { TopSurface = Enum.SurfaceType.Smooth })
+	local txt = color:Lerp(rgb(244, 236, 218), 0.62)
+	gui(p, Enum.NormalId.Front, text, txt)
+	if both then gui(p, Enum.NormalId.Back, text, txt) end
+	local trim = color:Lerp(rgb(40, 34, 32), 0.25)
+	part(V3(size.X + 0.8, 0.35, size.Z + 0.3), cf * CF(0, size.Y / 2 + 0.17, 0), trim)
+	part(V3(size.X + 0.8, 0.35, size.Z + 0.3), cf * CF(0, -size.Y / 2 - 0.17, 0), trim)
 	return p
 end
 
@@ -143,8 +141,8 @@ local function car(base, color)
 		end
 	end
 	for _, sz in ipairs({ -1.3, 1.3 }) do
-		part(V3(0.3, 0.6, 0.8), base * CF(4.05, 1.6, sz), rgb(255, 240, 190), MAT.Neon)
-		part(V3(0.3, 0.6, 0.8), base * CF(-4.05, 1.6, sz), rgb(255, 50, 50), MAT.Neon)
+		part(V3(0.3, 0.6, 0.8), base * CF(4.05, 1.6, sz), rgb(255, 240, 190), MAT.Plastic)
+		part(V3(0.3, 0.6, 0.8), base * CF(-4.05, 1.6, sz), rgb(255, 50, 50), MAT.Plastic)
 	end
 end
 
@@ -188,19 +186,28 @@ end
 ------------------------------------------------------------------
 -- BATIMENTS
 ------------------------------------------------------------------
+local LIT = { rgb(246, 222, 164), rgb(240, 204, 140), rgb(250, 232, 190), rgb(228, 190, 130) }
 local function windows(base, w, y0, h, cols, rows, z, lite)
 	local cw, rh = w / cols, (h - y0) / rows
+	local list = {}
 	for c = 1, cols do
 		for r = 1, rows do
 			local x = -w / 2 + (c - 0.5) * cw
 			local y = y0 + (r - 0.5) * rh
-			local lit = rng:NextNumber() < 0.65
+			local lit = rng:NextNumber() < 0.42
 			if not lite then
-				part(V3(cw * 0.66, rh * 0.62, 0.2), base * CF(x, y, z + 0.1), rgb(40, 34, 38))
+				part(V3(cw * 0.68, rh * 0.64, 0.2), base * CF(x, y, z + 0.1), rgb(232, 224, 208))
 			end
-			part(V3(cw * 0.5, rh * 0.48, 0.2), base * CF(x, y, z - 0.05), lit and rgb(255, 196, 112) or rgb(66, 78, 110), lit and MAT.Neon or MAT.Plastic)
+			local col = lit and LIT[rng:NextInteger(1, #LIT)] or rgb(74, 90, 112)
+			local mat = (lit and rng:NextNumber() < 0.1) and MAT.Neon or MAT.Plastic
+			part(V3(cw * 0.5, rh * 0.48, 0.2), base * CF(x, y, z - 0.05), col, mat)
+			if not lite then
+				part(V3(cw * 0.5, 0.18, 0.25), base * CF(x, y, z - 0.08), rgb(232, 224, 208))
+				table.insert(list, { x, y, cw, rh })
+			end
 		end
 	end
+	return list
 end
 
 -- base : centre bas de la facade, facade vers -Z, corps vers +Z
@@ -213,7 +220,31 @@ local function building(base, w, d, h, wall, roof, noShopfront)
 		part(V3(w + 0.8, 0.5, 0.9), base * CF(0, i * 7, -0.45), wall:Lerp(WHITE, 0.2))
 	end
 	if h > 12 then
-		windows(base, w - 5, 8, h - 1.5, math.max(2, math.floor(w / 6)), math.max(1, floors - 1), -0.2)
+		local list = windows(base, w - 5, 8, h - 1.5, math.max(2, math.floor(w / 6)), math.max(1, floors - 1), -0.2)
+		for _, o in ipairs(list) do
+			local x, y, cw, rh = o[1], o[2], o[3], o[4]
+			local roll = rng:NextNumber()
+			if roll < 0.28 then
+				-- jardiniere fleurie
+				part(V3(cw * 0.62, 0.7, 1.1), base * CF(x, y - rh * 0.4, -0.75), rgb(120, 82, 54))
+				part(V3(cw * 0.56, 0.5, 0.9), base * CF(x, y - rh * 0.4 + 0.55, -0.75), rgb(70, 128, 64))
+				for k = -1, 1 do
+					part(V3(0.4, 0.4, 0.4), base * CF(x + k * cw * 0.18, y - rh * 0.4 + 0.95, -0.8), (k % 2 == 0) and rgb(232, 120, 140) or rgb(240, 210, 90))
+				end
+			elseif roll < 0.4 and y > 12 then
+				-- petit balcon
+				part(V3(cw * 0.95, 0.4, 2.2), base * CF(x, y - rh * 0.42, -1.2), rgb(176, 170, 160))
+				part(V3(cw * 0.95, 0.25, 0.25), base * CF(x, y - rh * 0.42 + 1.1, -2.2), rgb(40, 40, 46))
+				for k = -2, 2 do
+					part(V3(0.2, 1.1, 0.2), base * CF(x + k * cw * 0.22, y - rh * 0.42 + 0.55, -2.2), rgb(40, 40, 46))
+				end
+			end
+		end
+	end
+	-- descente de gouttiere + perron
+	part(V3(0.5, h, 0.5), base * CF(-w / 2 + 1.2, h / 2, -0.8), C.steel)
+	for k = 1, 3 do
+		part(V3(5.6, 0.35 * k, 1.1), base * CF(w / 2 - 6, 0.175 * k, -1.1 - (3 - k) * 0.9), rgb(166, 160, 150))
 	end
 	-- pilastres
 	for _, sx in ipairs({ -1, 1 }) do
@@ -230,7 +261,7 @@ local function building(base, w, d, h, wall, roof, noShopfront)
 		part(V3(2, 5, 2), base * CF(x, h + 3.6, d - 4), C.brick)
 	end
 	if not noShopfront then
-		part(V3(w - 6, 5, 0.4), base * CF(0, 3.6, -0.3), rgb(255, 205, 130), MAT.Neon, { Transparency = 0.15 })
+		part(V3(w - 6, 5, 0.4), base * CF(0, 3.6, -0.3), rgb(255, 205, 130), MAT.Plastic, { Transparency = 0.15 })
 		part(V3(w - 5, 0.6, 0.6), base * CF(0, 6.3, -0.4), C.dark)
 		part(V3(4, 6.4, 0.5), base * CF(w / 2 - 6, 3.4, -0.45), C.wood)
 	end
@@ -246,9 +277,9 @@ local function awning(base, w, c1, c2)
 end
 
 local SHOPS = { "COFFEE", "RAMEN", "BOOKS", "ARCADE", "PIZZA", "TACOS", "VINYL", "TEA", "BAKERY", "SNEAKERS", "NOODLES", "BARBER" }
-local NEONS = { rgb(255, 120, 160), rgb(120, 220, 255), rgb(255, 190, 70), rgb(160, 130, 255), rgb(120, 255, 170) }
+local NEONS = { rgb(132, 56, 52), rgb(52, 98, 90), rgb(46, 66, 110), rgb(176, 130, 52), rgb(98, 62, 98) }
 local WALLS = {
-	rgb(154, 92, 80), rgb(214, 190, 150), rgb(92, 112, 140), rgb(120, 96, 128), rgb(176, 130, 88), rgb(88, 124, 116), rgb(196, 160, 140),
+	rgb(158, 92, 74), rgb(214, 196, 160), rgb(150, 150, 154), rgb(190, 164, 132), rgb(172, 104, 78), rgb(122, 134, 150), rgb(206, 190, 170), rgb(128, 82, 66),
 }
 
 local function filler(pos, front, w, h)
@@ -299,10 +330,10 @@ for i = -3, 2 do
 		part(V3(6, 0.2, 6), CF(i * 6 + 3, 1.1, j * 6 + 3), (i + j) % 2 == 0 and rgb(66, 70, 92) or rgb(52, 54, 74))
 	end
 end
-local ARENA_NEON = rgb(150, 90, 255)
+local ARENA_NEON = rgb(222, 184, 118)
 for _, s in ipairs({ -1, 1 }) do
-	part(V3(44, 0.2, 0.8), CF(0, 1.25, s * 21.6), ARENA_NEON, MAT.Neon)
-	part(V3(0.8, 0.2, 44), CF(s * 21.6, 1.25, 0), ARENA_NEON, MAT.Neon)
+	part(V3(44, 0.2, 0.8), CF(0, 1.25, s * 21.6), ARENA_NEON, MAT.Plastic)
+	part(V3(0.8, 0.2, 44), CF(s * 21.6, 1.25, 0), ARENA_NEON, MAT.Plastic)
 end
 for i = 0, 3 do
 	local r = CFrame.Angles(0, math.rad(90 * i), 0)
@@ -313,18 +344,18 @@ end
 for _, sx in ipairs({ -1, 1 }) do
 	for _, sz in ipairs({ -1, 1 }) do
 		part(V3(3, 10, 3), CF(sx * 21, 6, sz * 21), C.dark)
-		local top = part(V3(3.6, 1, 3.6), CF(sx * 21, 11.5, sz * 21), ARENA_NEON, MAT.Neon)
+		local top = part(V3(3.6, 1, 3.6), CF(sx * 21, 11.5, sz * 21), ARENA_NEON, MAT.Plastic)
 		local pl = Instance.new("PointLight")
 		pl.Range = 26
 		pl.Brightness = 1.2
-		pl.Color = ARENA_NEON
+		pl.Color = rgb(255, 214, 160)
 		pl.Shadows = false
 		pl.Parent = top
 	end
 end
-part(V3(7, 0.15, 7), CF(-8, 1.28, 0), rgb(60, 140, 255), MAT.Neon, { Transparency = 0.3 })
-part(V3(7, 0.15, 7), CF(8, 1.28, 0), rgb(255, 70, 90), MAT.Neon, { Transparency = 0.3 })
-neonSign(CF(0, 24, 0), V3(26, 5, 0.8), "MOG BATTLE", rgb(190, 130, 255), true)
+part(V3(7, 0.15, 7), CF(-8, 1.28, 0), rgb(60, 140, 255), MAT.Plastic, { Transparency = 0.3 })
+part(V3(7, 0.15, 7), CF(8, 1.28, 0), rgb(255, 70, 90), MAT.Plastic, { Transparency = 0.3 })
+neonSign(CF(0, 24, 0), V3(26, 5, 0.8), "MOG BATTLE", rgb(222, 184, 118), true)
 for _, sx in ipairs({ -1, 1 }) do part(V3(1, 22, 1), CF(sx * 11, 12, 0), C.dark) end
 firefly(V3(0, 6, 0), 10)
 
@@ -344,9 +375,9 @@ gui(arenaPad, Enum.NormalId.Top, "BATTLE", WHITE, 30)
 local function pad(base, theme, key)
 	part(V3(40, 0.3, 18), base * CF(0, 0.15, -12), theme.floor)
 	for _, sx in ipairs({ -1, 1 }) do
-		part(V3(0.6, 0.2, 18), base * CF(sx * 19.7, 0.35, -12), theme.accent, MAT.Neon)
+		part(V3(0.6, 0.2, 18), base * CF(sx * 19.7, 0.35, -12), theme.accent, MAT.Plastic)
 	end
-	part(V3(40, 0.2, 0.6), base * CF(0, 0.35, -20.7), theme.accent, MAT.Neon)
+	part(V3(40, 0.2, 0.6), base * CF(0, 0.35, -20.7), theme.accent, MAT.Plastic)
 	local p = part(V3(7, 0.5, 7), base * CF(0, 0.55, -12), theme.accent, MAT.Neon, { Transparency = 0.3, CanCollide = false })
 	gui(p, Enum.NormalId.Top, theme.stat, WHITE, 30)
 	local pr = Instance.new("ProximityPrompt")
@@ -381,7 +412,7 @@ local function shop(pos, front, theme, key)
 	building(base, 44, 24, 22, theme.wall, theme.roof, true)
 	-- vitrines + porte
 	for _, sx in ipairs({ -1, 1 }) do
-		part(V3(15, 6, 0.4), base * CF(sx * 12, 4, -0.3), rgb(255, 205, 130), MAT.Neon, { Transparency = 0.12 })
+		part(V3(15, 6, 0.4), base * CF(sx * 12, 4, -0.3), rgb(255, 205, 130), MAT.Plastic, { Transparency = 0.12 })
 		part(V3(16, 0.6, 0.7), base * CF(sx * 12, 7.2, -0.4), C.dark)
 		part(V3(16, 0.6, 0.7), base * CF(sx * 12, 0.9, -0.4), C.dark)
 	end
@@ -395,10 +426,10 @@ local function shop(pos, front, theme, key)
 end
 
 local THEMES = {
-	gym = { wall = rgb(78, 88, 112), roof = rgb(36, 40, 56), accent = rgb(255, 128, 40), floor = rgb(68, 62, 62), title = "IRON GYM", sub = "TRAIN YOUR FRAME", stat = "FRAME" },
-	face = { wall = rgb(176, 104, 118), roof = rgb(72, 40, 56), accent = rgb(255, 96, 130), floor = rgb(206, 186, 176), title = "FACE LAB", sub = "STYLE YOUR LOOK", stat = "FACE" },
-	height = { wall = rgb(64, 122, 130), roof = rgb(30, 54, 62), accent = rgb(70, 190, 255), floor = rgb(176, 120, 76), title = "HEIGHT DOJO", sub = "STAND TALL BE PROUD", stat = "HEIGHT" },
-	bodyfat = { wall = rgb(100, 134, 86), roof = rgb(40, 58, 40), accent = rgb(100, 235, 140), floor = rgb(168, 82, 70), title = "CARDIO CLUB", sub = "MOVE. SWEAT. IMPROVE.", stat = "BODYFAT" },
+	gym = { wall = rgb(132, 82, 70), roof = rgb(52, 40, 38), accent = rgb(214, 112, 48), floor = rgb(96, 88, 84), title = "IRON GYM", sub = "TRAIN YOUR FRAME", stat = "FRAME" },
+	face = { wall = rgb(212, 190, 164), roof = rgb(84, 62, 52), accent = rgb(200, 92, 112), floor = rgb(206, 190, 178), title = "FACE LAB", sub = "STYLE YOUR LOOK", stat = "FACE" },
+	height = { wall = rgb(112, 128, 148), roof = rgb(46, 54, 66), accent = rgb(70, 150, 200), floor = rgb(176, 130, 90), title = "HEIGHT DOJO", sub = "STAND TALL BE PROUD", stat = "HEIGHT" },
+	bodyfat = { wall = rgb(150, 160, 130), roof = rgb(60, 66, 52), accent = rgb(80, 170, 110), floor = rgb(150, 92, 80), title = "CARDIO CLUB", sub = "MOVE. SWEAT. IMPROVE.", stat = "BODYFAT" },
 }
 
 -- GYM : racks, bancs, halteres, pneus
@@ -432,7 +463,7 @@ do
 		part(V3(2.4, 0.6, 1), b * CF(sx, 1.2, -13), C.dark)
 		part(V3(9, 11, 0.6), b * CF(sx, 7, -20), C.dark)
 		part(V3(8, 10, 0.2), b * CF(sx, 7, -19.65), rgb(180, 210, 230), MAT.Glass, { Reflectance = 0.35 })
-		part(V3(9.2, 0.4, 0.8), b * CF(sx, 12.2, -19.6), rgb(255, 96, 130), MAT.Neon)
+		part(V3(9.2, 0.4, 0.8), b * CF(sx, 12.2, -19.6), rgb(255, 96, 130), MAT.Plastic)
 	end
 	for i = 0, 5 do
 		part(V3(1.6, 1.2, 1.6), b * CF(-2.6, 0.6 + i * 1.2, -4.6), (i % 3 == 0) and C.red or ((i % 3 == 1) and WHITE or C.blue))
@@ -449,15 +480,15 @@ do
 	local b = shop(V3(-58, 0, 34), V3(0, 0, -1), THEMES.height, "height")
 	part(V3(0.8, 15, 0.8), b * CF(-14, 7.5, -17), C.dark)
 	part(V3(6, 4, 0.5), b * CF(-14, 14, -15.6), WHITE)
-	part(V3(2.6, 2, 0.2), b * CF(-14, 13.6, -15.3), rgb(255, 80, 70), MAT.Neon)
+	part(V3(2.6, 2, 0.2), b * CF(-14, 13.6, -15.3), rgb(255, 80, 70), MAT.Plastic)
 	for _, a in ipairs({ { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } }) do
-		part(V3(a[1] ~= 0 and 0.4 or 2.4, 0.4, a[2] ~= 0 and 0.4 or 2.4), b * CF(-14 + a[1] * 1.2, 11.6, -14.4 + a[2] * 1.2), rgb(255, 130, 40), MAT.Neon)
+		part(V3(a[1] ~= 0 and 0.4 or 2.4, 0.4, a[2] ~= 0 and 0.4 or 2.4), b * CF(-14 + a[1] * 1.2, 11.6, -14.4 + a[2] * 1.2), rgb(255, 130, 40), MAT.Plastic)
 	end
 	part(V3(22, 0.2, 16), b * CF(-6, 0.4, -12), rgb(190, 134, 84), MAT.Plastic)
 	part(V3(0.4, 0.1, 16), b * CF(-6, 0.52, -12), WHITE)
 	part(V3(2, 22, 0.8), b * CF(16, 11, -3), C.dark)
 	for i = 1, 8 do
-		part(V3(i % 2 == 0 and 3.4 or 2.4, 0.5, 0.9), b * CF(16, i * 2.5, -3.6), rgb(70, 190, 255), MAT.Neon)
+		part(V3(i % 2 == 0 and 3.4 or 2.4, 0.5, 0.9), b * CF(16, i * 2.5, -3.6), rgb(70, 190, 255), MAT.Plastic)
 	end
 	part(V3(0.8, 9, 0.8), b * CF(6, 4.5, -8), C.steel)
 	part(V3(0.8, 9, 0.8), b * CF(12, 4.5, -8), C.steel)
@@ -473,7 +504,7 @@ do
 		part(V3(2.4, 0.2, 5.2), b * CF(i * 7 - 8, 1.4, -15), rgb(60, 64, 72))
 		part(V3(0.6, 4, 0.6), b * CF(i * 7 - 8.9, 3, -17.6), C.steel)
 		part(V3(0.6, 4, 0.6), b * CF(i * 7 - 7.1, 3, -17.6), C.steel)
-		part(V3(2.6, 1.6, 0.8), b * CF(i * 7 - 8, 5, -17.6), rgb(80, 240, 150), MAT.Neon)
+		part(V3(2.6, 1.6, 0.8), b * CF(i * 7 - 8, 5, -17.6), rgb(80, 240, 150), MAT.Plastic)
 	end
 	for i = 0, 3 do
 		part(V3(1.4, 1.8, 1.4), b * CF(8 + i * 3, 0.9, -7), rgb(255, 130, 40))
@@ -482,7 +513,7 @@ do
 	for i = 0, 2 do
 		part(V3(0.4, 3, 0.4), b * CF(10 + i * 4, 1.5, -12), WHITE)
 		part(V3(0.4, 3, 0.4), b * CF(12.4 + i * 4, 1.5, -12), WHITE)
-		part(V3(2.8, 0.4, 0.4), b * CF(11.2 + i * 4, 3, -12), rgb(100, 235, 140), MAT.Neon)
+		part(V3(2.8, 0.4, 0.4), b * CF(11.2 + i * 4, 3, -12), rgb(100, 235, 140), MAT.Plastic)
 	end
 	part(V3(2.4, 4, 2.4), b * CF(16, 2, -17), rgb(120, 190, 240), MAT.Glass, { Transparency = 0.3 })
 	part(V3(2.6, 1, 2.6), b * CF(16, 0.5, -17), C.dark)
@@ -617,7 +648,7 @@ bt.BackgroundTransparency = 1
 bt.Text = "TOP MOGGERS"
 bt.TextScaled = true
 bt.Font = Enum.Font.GothamBlack
-bt.TextColor3 = rgb(190, 130, 255)
+bt.TextColor3 = rgb(222, 184, 118)
 bt.Parent = bg
 local bl = Instance.new("TextLabel")
 bl.Name = "BoardText"
@@ -631,8 +662,8 @@ bl.TextColor3 = WHITE
 bl.TextXAlignment = Enum.TextXAlignment.Left
 bl.TextYAlignment = Enum.TextYAlignment.Top
 bl.Parent = bg
-part(V3(29, 0.5, 1.4), CF(0, 25.8, -62), rgb(190, 130, 255), MAT.Neon)
-part(V3(29, 0.5, 1.4), CF(0, 12.2, -62), rgb(190, 130, 255), MAT.Neon)
+part(V3(29, 0.5, 1.4), CF(0, 25.8, -62), rgb(120, 96, 70))
+part(V3(29, 0.5, 1.4), CF(0, 12.2, -62), rgb(120, 96, 70))
 
 neonSign(CF(0, 22, 100) * CFrame.Angles(0, math.pi, 0), V3(30, 6, 1), "WELCOME TO MOG STREET", rgb(255, 190, 90), true)
 
@@ -646,13 +677,41 @@ spawn.TopSurface = Enum.SurfaceType.Studs
 spawn.Neutral = true
 spawn.Duration = 0
 spawn.Parent = map
-part(V3(15, 0.2, 0.6), CF(0, 1.05, 111), rgb(255, 190, 90), MAT.Neon)
+part(V3(15, 0.2, 0.6), CF(0, 1.05, 111), rgb(255, 190, 90), MAT.Plastic)
+
+-- abris bus + panneaux de rue
+local function busStop(x, z, ang)
+	local b = CF(x, 0, z) * CFrame.Angles(0, ang, 0)
+	part(V3(9, 0.4, 3.6), b * CF(0, 0.2, 0), rgb(120, 116, 110))
+	for _, sx in ipairs({ -4, 4 }) do part(V3(0.4, 7, 0.4), b * CF(sx, 3.7, 1.4), C.dark) end
+	part(V3(9.6, 0.5, 4.2), b * CF(0, 7.4, 0.3), rgb(70, 110, 96))
+	part(V3(8.4, 5.4, 0.2), b * CF(0, 4, 1.6), rgb(150, 200, 220), MAT.Glass, { Transparency = 0.6 })
+	part(V3(5.6, 0.5, 1.4), b * CF(0, 1.6, 0.8), C.wood)
+	part(V3(0.4, 9, 0.4), b * CF(5.2, 4.5, -0.8), C.steel)
+	part(V3(2, 1.6, 0.3), b * CF(5.2, 8.6, -0.8), rgb(40, 100, 160))
+end
+busStop(-30, -22, 0)
+busStop(30, 22, math.pi)
+busStop(-18, 90, math.pi / 2)
+busStop(18, -90, -math.pi / 2)
+local function streetSign(x, z, ang, t1, t2)
+	local b = CF(x, 0, z) * CFrame.Angles(0, ang, 0)
+	part(V3(0.5, 11, 0.5), b * CF(0, 5.5, 0), C.steel)
+	local p = part(V3(6, 1.4, 0.3), b * CF(0, 10.6, -0.4), rgb(40, 100, 70), MAT.Plastic, { TopSurface = Enum.SurfaceType.Smooth })
+	gui(p, Enum.NormalId.Front, t1, WHITE, 30)
+	local q = part(V3(6, 1.4, 0.3), b * CF(0, 8.9, -0.4) * CFrame.Angles(0, math.pi / 2, 0), rgb(40, 100, 70), MAT.Plastic, { TopSurface = Enum.SurfaceType.Smooth })
+	gui(q, Enum.NormalId.Front, t2, WHITE, 30)
+end
+streetSign(14, -14, 0, "MOG STREET", "ARENA AVE")
+streetSign(-14, 14, math.pi, "MOG STREET", "ARENA AVE")
+streetSign(14, 14, math.pi / 2, "MOG STREET", "ARENA AVE")
+streetSign(-14, -14, -math.pi / 2, "MOG STREET", "ARENA AVE")
 
 -- murs invisibles
 for _, w in ipairs({ { 0, -221, 440, 2 }, { 0, 221, 440, 2 }, { -221, 0, 2, 440 }, { 221, 0, 2, 440 } }) do
 	part(V3(w[3], 120, w[4]), CF(w[1], 60, w[2]), WHITE, MAT.Plastic, { Transparency = 1, CanQuery = false })
 end
-]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX9"><Properties><string name="Name">MogGame</string><ProtectedString name="Source"><![CDATA[-- MogGame : stats, validation des mini-jeux, Mog Battle (joueur ou IA), classement, sauvegarde
+]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX10"><Properties><string name="Name">MogGame</string><ProtectedString name="Source"><![CDATA[-- MogGame : stats, validation des mini-jeux, Mog Battle (joueur ou IA), classement, sauvegarde
 -- Script a placer dans ServerScriptService
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -665,7 +724,7 @@ local remotes = Instance.new("Folder")
 remotes.Name = "MogRemotes"
 remotes.Parent = RS
 local R = {}
-for _, n in ipairs({ "Toast", "OpenStation", "SubmitStation", "StationResult", "BattleRequest", "BattleInvite", "BattleInviteReply", "BattleState", "BattleMove", "TeleportTo" }) do
+for _, n in ipairs({ "Toast", "OpenStation", "SubmitStation", "StationResult", "BattleRequest", "BattleInvite", "BattleInviteReply", "BattleState", "BattleMove", "TeleportTo", "Announce", "Tutorial", "TutorialDone" }) do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remotes
@@ -673,7 +732,7 @@ for _, n in ipairs({ "Toast", "OpenStation", "SubmitStation", "StationResult", "
 end
 
 local store = DS:GetDataStore("MogData_v2")
-local START = { Face = 10, Frame = 10, Height = 15, Bodyfat = 85, Wins = 0 }
+local START = { Face = 10, Frame = 10, Height = 15, Bodyfat = 85, Wins = 0, Tut = 0 }
 local data, cooldown, sessions, invites = {}, {}, {}, {}
 local boardLabel
 
@@ -691,6 +750,23 @@ local function progress(d)
 	return math.clamp(((d.Face - 10) + (d.Frame - 10) + (d.Height - 15) + (85 - d.Bodyfat)) / 345, 0, 1)
 end
 
+local TIERS = {
+	{ name = "SUB-5", w = 45, lo = 5, hi = 24, col = Color3.fromRGB(140, 200, 120), speed = 7 },
+	{ name = "LTN", w = 28, lo = 22, hi = 40, col = Color3.fromRGB(175, 175, 188), speed = 8 },
+	{ name = "MTN", w = 15, lo = 38, hi = 55, col = Color3.fromRGB(110, 170, 255), speed = 9 },
+	{ name = "HTN", w = 8, lo = 52, hi = 70, col = Color3.fromRGB(255, 170, 70), speed = 10 },
+	{ name = "CHADLITE", w = 3.5, lo = 68, hi = 85, col = Color3.fromRGB(255, 110, 200), speed = 11 },
+	{ name = "CHAD", w = 0.5, lo = 85, hi = 98, col = Color3.fromRGB(255, 214, 70), speed = 12 },
+}
+local function tierOf(d)
+	local a = mogScore(d) / 40
+	if a < 20 then return 1 elseif a < 36 then return 2 elseif a < 52 then return 3 elseif a < 68 then return 4 elseif a < 84 then return 5 end
+	return 6
+end
+local function announce(text, col, level)
+	R.Announce:FireAllClients(text, col, level)
+end
+
 local function pushAttrs(plr)
 	local d = data[plr]
 	if not d then return end
@@ -698,6 +774,7 @@ local function pushAttrs(plr)
 		plr:SetAttribute(k, d[k])
 	end
 	plr:SetAttribute("MogScore", mogScore(d))
+	plr:SetAttribute("TierId", tierOf(d))
 	local ls = plr:FindFirstChild("leaderstats")
 	if ls then
 		ls.MogScore.Value = mogScore(d)
@@ -722,8 +799,174 @@ local function updateRanks()
 end
 
 ------------------------------------------------------------------
--- APPARENCE (moche/gros/boutons -> beau/athletique)
+-- APPARENCE : le skin evolue avec les stats
 ------------------------------------------------------------------
+local SKIN_SICK, SKIN_OK = Color3.fromRGB(165, 175, 115), Color3.fromRGB(226, 176, 138)
+local function skinOf(d)
+	return SKIN_SICK:Lerp(SKIN_OK, math.clamp(progress(d) * 1.4, 0, 1))
+end
+
+local function addTag(char, text, sub, col)
+	local head = char:FindFirstChild("Head")
+	if not head then return end
+	local old = head:FindFirstChild("MogTag")
+	if old then old:Destroy() end
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "MogTag"
+	bb.Size = UDim2.fromOffset(160, sub and 52 or 28)
+	bb.StudsOffset = Vector3.new(0, sub and 3.4 or 3.0, 0)
+	bb.LightInfluence = 0
+	bb.MaxDistance = 110
+	bb.Parent = head
+	local function lbl(txt, sz, pos, c, font)
+		local t = Instance.new("TextLabel")
+		t.Size, t.Position = sz, pos
+		t.BackgroundTransparency = 1
+		t.Text = txt
+		t.TextScaled = true
+		t.Font = font
+		t.TextColor3 = c
+		t.Parent = bb
+		local st = Instance.new("UIStroke")
+		st.Thickness = 2
+		st.Parent = t
+	end
+	if sub then
+		lbl(text, UDim2.fromScale(1, 0.6), UDim2.new(), col, Enum.Font.GothamBlack)
+		lbl(sub, UDim2.fromScale(1, 0.38), UDim2.fromScale(0, 0.62), Color3.new(1, 1, 1), Enum.Font.GothamBold)
+	else
+		lbl(text, UDim2.fromScale(1, 1), UDim2.new(), col, Enum.Font.GothamBlack)
+	end
+end
+
+-- cosmetiques : cheveux, machoire, lunettes, chaine, muscles, ventre, acne, halo...
+local function dress(char, d, opts)
+	opts = opts or {}
+	for _, c in ipairs(char:GetChildren()) do
+		if c:GetAttribute("MogFx") then c:Destroy() end
+	end
+	local head, ut, lt = char:FindFirstChild("Head"), char:FindFirstChild("UpperTorso"), char:FindFirstChild("LowerTorso")
+	if not (head and ut and lt) then return end
+	local lua, rua = char:FindFirstChild("LeftUpperArm"), char:FindFirstChild("RightUpperArm")
+	local rng = Random.new(opts.seed or 1)
+	local p, f, fr, bf = progress(d), d.Face, d.Frame, d.Bodyfat
+	local tcol = TIERS[tierOf(d)].col
+	local black, gold = Color3.fromRGB(18, 16, 18), Color3.fromRGB(240, 196, 70)
+	local function add(base, size, off, color, shape, mat)
+		local x = Instance.new("Part")
+		x.Name = "MogFx"
+		x:SetAttribute("MogFx", true)
+		x.Size = Vector3.new(math.max(size.X, 0.05), math.max(size.Y, 0.05), math.max(size.Z, 0.05))
+		x.Shape = shape or Enum.PartType.Block
+		x.Color = color
+		x.Material = mat or Enum.Material.SmoothPlastic
+		x.CanCollide, x.CanQuery, x.CanTouch, x.Massless, x.CastShadow = false, false, false, true, false
+		x.CFrame = base.CFrame * off
+		x.Parent = char
+		local w = Instance.new("WeldConstraint")
+		w.Part0, w.Part1 = base, x
+		w.Parent = x
+		return x
+	end
+	local V = Vector3.new
+	local hs = head.Size
+	local skin = head.Color
+
+	-- cheveux : touffes -> coupe courte -> coiffure + meche (blond pour les Chads)
+	local hair = (f >= 90) and Color3.fromRGB(232, 196, 112) or Color3.fromRGB(32, 24, 20)
+	if f < 25 then
+		for _ = 1, 3 do
+			add(head, V(hs.X * 0.18, hs.Y * 0.2, hs.Z * 0.18), CFrame.new(rng:NextNumber(-0.3, 0.3) * hs.X, hs.Y * 0.52, rng:NextNumber(-0.2, 0.2) * hs.Z), hair:Lerp(Color3.fromRGB(130, 120, 100), 0.4))
+		end
+	elseif f < 60 then
+		add(head, V(hs.X * 1.04, hs.Y * 0.26, hs.Z * 1.04), CFrame.new(0, hs.Y * 0.5, 0), hair)
+	else
+		add(head, V(hs.X * 1.06, hs.Y * 0.3, hs.Z * 1.06), CFrame.new(0, hs.Y * 0.5, hs.Z * 0.02), hair)
+		add(head, V(hs.X * 0.95, hs.Y * 0.22, hs.Z * 0.4), CFrame.new(0, hs.Y * 0.62, -hs.Z * 0.32) * CFrame.Angles(math.rad(-20), 0, 0), hair)
+	end
+	-- visage dessine (bots)
+	if opts.face then
+		for _, sx in ipairs({ -1, 1 }) do
+			add(head, V(hs.X * 0.14, hs.Y * 0.13, 0.05), CFrame.new(sx * hs.X * 0.2, hs.Y * 0.06, -hs.Z * 0.52), black)
+		end
+		local my = (f < 30) and -0.26 or -0.2
+		add(head, V(hs.X * 0.34, hs.Y * 0.06, 0.05), CFrame.new(0, hs.Y * my, -hs.Z * 0.52), black)
+		if f >= 60 then add(head, V(hs.X * 0.1, hs.Y * 0.06, 0.05), CFrame.new(hs.X * 0.2, hs.Y * (my + 0.04), -hs.Z * 0.52), black) end
+		if f < 30 then
+			for _, sx in ipairs({ -1, 1 }) do add(head, V(hs.X * 0.08, hs.Y * 0.06, 0.05), CFrame.new(sx * hs.X * 0.19, hs.Y * (my - 0.04), -hs.Z * 0.52), black) end
+		end
+	end
+	-- cernes / sourcils / machoire / double menton / acne
+	if f < 35 then
+		for _, sx in ipairs({ -1, 1 }) do add(head, V(hs.X * 0.2, hs.Y * 0.05, 0.05), CFrame.new(sx * hs.X * 0.2, -hs.Y * 0.02, -hs.Z * 0.52), Color3.fromRGB(96, 72, 96)) end
+	end
+	if f >= 50 then
+		for _, sx in ipairs({ -1, 1 }) do add(head, V(hs.X * 0.24, hs.Y * 0.05, 0.06), CFrame.new(sx * hs.X * 0.2, hs.Y * 0.2, -hs.Z * 0.52), hair) end
+	end
+	if f >= 60 then
+		add(head, V(hs.X * 0.86, hs.Y * 0.2, hs.Z * 0.6), CFrame.new(0, -hs.Y * 0.42, -hs.Z * 0.12), skin:Lerp(black, 0.08))
+	end
+	if bf > 60 and f < 55 then
+		add(head, V(hs.X * 0.8, hs.Y * 0.5, hs.Z * 0.7), CFrame.new(0, -hs.Y * 0.5, -hs.Z * 0.1), skin, Enum.PartType.Ball)
+	end
+	if f < 70 then
+		for _ = 1, math.floor((100 - f) / 100 * 14) do
+			add(head, Vector3.one * (0.16 * hs.X / 1.2), CFrame.new(rng:NextNumber(-0.4, 0.4) * hs.X, rng:NextNumber(-0.3, 0.35) * hs.Y, -hs.Z * 0.5), Color3.fromRGB(190, 55, 55), Enum.PartType.Ball)
+		end
+	end
+	-- lunettes de soleil puis yeux laser, halo
+	if p >= 0.5 then
+		add(head, V(hs.X * 0.92, hs.Y * 0.15, 0.1), CFrame.new(0, hs.Y * 0.08, -hs.Z * 0.53), black, nil, Enum.Material.Glass)
+		if p >= 0.78 then add(head, V(hs.X * 0.8, hs.Y * 0.04, 0.12), CFrame.new(0, hs.Y * 0.08, -hs.Z * 0.56), tcol, nil, Enum.Material.Neon) end
+	end
+	if p >= 0.9 then
+		local h = add(head, V(0.15, hs.X * 1.3, hs.X * 1.3), CFrame.new(0, hs.Y * 1.0, 0) * CFrame.Angles(0, 0, math.pi / 2), gold, Enum.PartType.Cylinder, Enum.Material.Neon)
+		h.Transparency = 0.25
+	end
+	-- chaine en or
+	if p >= 0.4 then
+		for k = -2, 2 do
+			add(ut, V(0.2, 0.2, 0.12), CFrame.new(k * ut.Size.X * 0.1, ut.Size.Y * 0.42 - (2 - math.abs(k)) * ut.Size.Y * 0.08, -ut.Size.Z * 0.5), gold, nil, Enum.Material.Metal)
+		end
+		add(ut, V(0.45, 0.45, 0.14), CFrame.new(0, ut.Size.Y * 0.1, -ut.Size.Z * 0.52), gold, nil, Enum.Material.Metal)
+	end
+	-- muscles (Frame)
+	local m = math.clamp((fr - 10) / 90, 0, 1)
+	local us = ut.Size
+	if m > 0.2 then
+		for _, sx in ipairs({ -1, 1 }) do
+			add(ut, V(us.X * 0.46, us.Y * 0.3, us.Z * (0.3 + 0.3 * m)), CFrame.new(sx * us.X * 0.24, us.Y * 0.1, -us.Z * 0.5), ut.Color)
+		end
+	end
+	if m > 0.3 then
+		for _, a in ipairs({ lua, rua }) do
+			if a then add(a, Vector3.one * (a.Size.X * (1.1 + m * 0.9)), CFrame.new(0, a.Size.Y * 0.3, 0), a.Color, Enum.PartType.Ball) end
+		end
+	end
+	if m > 0.55 then
+		for _, sx in ipairs({ -1, 1 }) do
+			add(ut, V(us.X * 0.3, us.Y * 0.16, us.Z * 0.9), CFrame.new(sx * us.X * 0.28, us.Y * 0.5, us.Z * 0.1) * CFrame.Angles(0, 0, sx * math.rad(-18)), ut.Color)
+		end
+	end
+	if m > 0.4 and bf < 45 then
+		local line = ut.Color:Lerp(black, 0.4)
+		add(ut, V(us.X * 0.5, 0.06, 0.06), CFrame.new(0, -us.Y * 0.05, -us.Z * 0.5), line)
+		add(ut, V(us.X * 0.5, 0.06, 0.06), CFrame.new(0, -us.Y * 0.3, -us.Z * 0.5), line)
+		add(lt, V(us.X * 0.5, 0.06, 0.06), CFrame.new(0, lt.Size.Y * 0.1, -lt.Size.Z * 0.5), line)
+		add(ut, V(0.06, us.Y * 0.55, 0.06), CFrame.new(0, -us.Y * 0.15, -us.Z * 0.5), line)
+	end
+	-- ventre / seins (Bodyfat eleve)
+	if bf > 50 then
+		local sz = lt.Size.X * (0.75 + (bf - 50) / 60)
+		add(lt, V(sz, sz * 0.9, sz * 0.8), CFrame.new(0, lt.Size.Y * 0.15, -lt.Size.Z * 0.35), lt.Color, Enum.PartType.Ball)
+	end
+	if bf > 70 then
+		for _, sx in ipairs({ -1, 1 }) do
+			add(ut, V(us.X * 0.34, us.X * 0.3, us.Z * 0.5), CFrame.new(sx * us.X * 0.22, us.Y * 0.05, -us.Z * 0.5), ut.Color, Enum.PartType.Ball)
+		end
+	end
+end
+
 local function applyLook(plr)
 	local d, char = data[plr], plr.Character
 	if not d or not char then return end
@@ -734,71 +977,71 @@ local function applyLook(plr)
 		local v = hum:FindFirstChild(name)
 		if v then v.Value = val end
 	end
-	set("BodyHeightScale", 0.8 + 0.4 * d.Height / 100)
+	set("BodyHeightScale", 0.78 + 0.5 * d.Height / 100)
 	set("BodyWidthScale", 0.85 + 0.6 * f + 0.25 * d.Frame / 100)
 	set("BodyDepthScale", 0.85 + 0.6 * f + 0.15 * d.Frame / 100)
 	set("HeadScale", 1.3 - 0.3 * d.Face / 100)
 	local bc = char:FindFirstChildOfClass("BodyColors")
 	if bc then
-		local col = Color3.fromRGB(165, 175, 115):Lerp(Color3.fromRGB(226, 176, 138), progress(d))
+		local col = skinOf(d)
 		bc.HeadColor3, bc.TorsoColor3 = col, col
 		bc.LeftArmColor3, bc.RightArmColor3 = col, col
 		bc.LeftLegColor3, bc.RightLegColor3 = col, col
 	end
+	local tier = tierOf(d)
 	local hrp = char:FindFirstChild("HumanoidRootPart")
 	if hrp then
 		local aura = hrp:FindFirstChild("MogAura")
-		if progress(d) >= 0.75 then
+		if tier >= 4 then
 			if not aura then
 				aura = Instance.new("ParticleEmitter")
 				aura.Name = "MogAura"
-				aura.Color = ColorSequence.new(Color3.fromRGB(150, 90, 255))
-				aura.Rate = 20
+				aura.LightEmission = 1
+				aura.SpreadAngle = Vector2.new(180, 180)
+				aura.Acceleration = Vector3.new(0, 4, 0)
 				aura.Lifetime = NumberRange.new(1, 1.6)
 				aura.Speed = NumberRange.new(2, 4)
 				aura.Size = NumberSequence.new(0.5, 0)
 				aura.Transparency = NumberSequence.new(0.2, 1)
-				aura.LightEmission = 1
-				aura.SpreadAngle = Vector2.new(180, 180)
-				aura.Acceleration = Vector3.new(0, 4, 0)
 				aura.Parent = hrp
 			end
+			aura.Color = ColorSequence.new(TIERS[tier].col)
+			aura.Rate = 8 + tier * 6
 		elseif aura then
 			aura:Destroy()
+		end
+		local glow = hrp:FindFirstChild("MogGlow")
+		if tier >= 5 then
+			if not glow then
+				glow = Instance.new("PointLight")
+				glow.Name = "MogGlow"
+				glow.Range = 12
+				glow.Brightness = 0.9
+				glow.Shadows = false
+				glow.Parent = hrp
+			end
+			glow.Color = TIERS[tier].col
+		elseif glow then
+			glow:Destroy()
 		end
 	end
 	local token = (plr:GetAttribute("LookToken") or 0) + 1
 	plr:SetAttribute("LookToken", token)
-	task.delay(0.35, function()
+	task.delay(0.6, function()
 		if plr:GetAttribute("LookToken") ~= token or not char.Parent then return end
-		local head = char:FindFirstChild("Head")
-		if not head then return end
-		for _, c in ipairs(char:GetChildren()) do
-			if c.Name == "Pimple" then c:Destroy() end
-		end
-		local n = math.floor((100 - d.Face) / 100 * 16)
-		local rng = Random.new(plr.UserId)
-		for _ = 1, n do
-			local x = rng:NextNumber(-0.4, 0.4) * head.Size.X
-			local y = rng:NextNumber(-0.35, 0.4) * head.Size.Y
-			local p = Instance.new("Part")
-			p.Name = "Pimple"
-			p.Shape = Enum.PartType.Ball
-			p.Size = Vector3.one * (0.18 * head.Size.X / 1.2)
-			p.Color = Color3.fromRGB(190, 55, 55)
-			p.Material = Enum.Material.SmoothPlastic
-			p.CanCollide, p.CanQuery, p.CanTouch, p.Massless = false, false, false, true
-			p.CFrame = head.CFrame * CFrame.new(x, y, -head.Size.Z / 2)
-			local w = Instance.new("WeldConstraint")
-			w.Part0, w.Part1 = head, p
-			w.Parent = p
-			p.Parent = char
-		end
+		dress(char, d, { seed = plr.UserId })
+		addTag(char, TIERS[tier].name, nil, TIERS[tier].col)
 	end)
 end
 
 local function refreshAll(plr)
+	local before = plr:GetAttribute("TierId")
 	pushAttrs(plr)
+	local after = plr:GetAttribute("TierId")
+	if before and after and after > before then
+		toast(plr, "NIVEAU SUPERIEUR : " .. TIERS[after].name .. " !", "good")
+		if after >= 5 then announce(plr.DisplayName .. " est devenu " .. TIERS[after].name .. " !", TIERS[after].col, after) end
+	end
 	applyLook(plr)
 	updateRanks()
 end
@@ -969,6 +1212,277 @@ local function flash(model, color)
 	Debris:AddItem(h, 0.55)
 end
 
+------------------------------------------------------------------
+-- BOTS QUI SE PROMENENT EN VILLE (SUB-5 -> CHAD, plus c'est haut plus c'est rare)
+------------------------------------------------------------------
+local botsFolder = Instance.new("Folder")
+botsFolder.Name = "MogBots"
+botsFolder.Parent = Workspace
+local bots, botSeq = {}, 0
+local BOT_CAP = 12
+local LANES = {
+	{ "x", 3.5, -170, -34 }, { "x", -3.5, 34, 170 }, { "x", -3.5, -170, -34 }, { "x", 3.5, 34, 170 },
+	{ "z", 3.5, -170, -34 }, { "z", -3.5, 34, 170 }, { "z", -3.5, -170, -34 }, { "z", 3.5, 34, 170 },
+}
+local SHIRTS = {
+	Color3.fromRGB(70, 72, 84), Color3.fromRGB(128, 62, 60), Color3.fromRGB(62, 92, 124), Color3.fromRGB(80, 112, 84),
+	Color3.fromRGB(112, 92, 62), Color3.fromRGB(40, 40, 48), Color3.fromRGB(190, 184, 170),
+}
+local PANTS = { Color3.fromRGB(40, 44, 60), Color3.fromRGB(30, 30, 34), Color3.fromRGB(86, 74, 60), Color3.fromRGB(60, 70, 96) }
+
+local function lanePoint(l)
+	local t = math.random(l[3] * 10, l[4] * 10) / 10
+	if l[1] == "x" then return Vector3.new(t, 4, l[2]) end
+	return Vector3.new(l[2], 4, t)
+end
+
+local function levelData(level)
+	local t = TIERS[level]
+	local base = math.random(t.lo, t.hi)
+	local function v() return math.clamp(base + math.random(-6, 6), 3, 99) end
+	return { Face = v(), Frame = v(), Height = v(), Bodyfat = 100 - v() }
+end
+
+local function rollLevel()
+	local total = 0
+	for _, t in ipairs(TIERS) do total += t.w end
+	local r = math.random() * total
+	for i, t in ipairs(TIERS) do
+		r -= t.w
+		if r <= 0 then return i end
+	end
+	return 1
+end
+
+local function countBots()
+	local n = 0
+	for _ in pairs(bots) do n += 1 end
+	return n
+end
+
+local function createBotModel(d)
+	local model
+	pcall(function()
+		local desc = Instance.new("HumanoidDescription")
+		local skin = skinOf(d)
+		desc.HeadColor, desc.LeftArmColor, desc.RightArmColor = skin, skin, skin
+		desc.TorsoColor = SHIRTS[math.random(1, #SHIRTS)]
+		local pants = PANTS[math.random(1, #PANTS)]
+		desc.LeftLegColor, desc.RightLegColor = pants, pants
+		model = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R15)
+	end)
+	return model
+end
+
+local function scaleRig(model, d)
+	local hum = model:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	local f = d.Bodyfat / 100
+	local function set(nm, v)
+		local o = hum:FindFirstChild(nm)
+		if o then o.Value = v end
+	end
+	set("BodyHeightScale", 0.78 + 0.5 * d.Height / 100)
+	set("BodyWidthScale", 0.85 + 0.6 * f + 0.25 * d.Frame / 100)
+	set("BodyDepthScale", 0.85 + 0.6 * f + 0.15 * d.Frame / 100)
+	set("HeadScale", 1.3 - 0.3 * d.Face / 100)
+end
+
+local function loadAnims(hum)
+	local ok, idle, walk = pcall(function()
+		local an = hum:FindFirstChildOfClass("Animator")
+		if not an then
+			an = Instance.new("Animator")
+			an.Parent = hum
+		end
+		local function tr(id)
+			local a = Instance.new("Animation")
+			a.AnimationId = "rbxassetid://" .. id
+			local t = an:LoadAnimation(a)
+			t.Looped = true
+			return t
+		end
+		return tr(507766666), tr(507777826)
+	end)
+	if ok then return idle, walk end
+	return nil, nil
+end
+
+local function poof(pos, col)
+	local a = Instance.new("Part")
+	a.Anchored, a.CanCollide, a.CanQuery, a.Transparency, a.Size = true, false, false, 1, Vector3.one
+	a.Position = pos
+	a.Parent = Workspace
+	local e = Instance.new("ParticleEmitter")
+	e.Color = ColorSequence.new(col)
+	e.LightEmission = 1
+	e.Speed = NumberRange.new(14, 26)
+	e.Lifetime = NumberRange.new(0.6, 1)
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.Size = NumberSequence.new(1.4, 0)
+	e.Rate = 0
+	e.Parent = a
+	e:Emit(60)
+	Debris:AddItem(a, 2)
+end
+
+local function despawnBot(bot, withPoof)
+	if not bot.alive then return end
+	bot.alive = false
+	bots[bot.id] = nil
+	if withPoof and bot.root then poof(bot.root.Position, TIERS[bot.level].col) end
+	if bot.model then bot.model:Destroy() end
+end
+
+local function releaseBot(bot)
+	if not bot or not bot.alive then return end
+	bot.busy = false
+	if bot.kind == "rig" and bot.root then bot.root.Anchored = false end
+	if bot.prompt then bot.prompt.Enabled = true end
+end
+
+local function setWalking(bot, on)
+	if not (bot.walk and bot.idle) then return end
+	if on then
+		bot.idle:Stop(0.2)
+		if not bot.walk.IsPlaying then bot.walk:Play(0.2) end
+	else
+		bot.walk:Stop(0.2)
+		if not bot.idle.IsPlaying then bot.idle:Play(0.2) end
+	end
+end
+
+local function glide(bot, target)
+	local root = bot.root
+	local t0 = os.clock()
+	while bot.alive and not bot.busy and os.clock() - t0 < 40 do
+		local pos = root.Position
+		local flat = Vector3.new(target.X - pos.X, 0, target.Z - pos.Z)
+		if flat.Magnitude < 1.5 then break end
+		local np = pos + flat.Unit * bot.speed * 0.1
+		bot.model:PivotTo(CFrame.lookAt(np, np + flat.Unit))
+		task.wait(0.1)
+	end
+end
+
+local function runBot(bot)
+	while bot.alive do
+		if bot.busy then
+			task.wait(0.5)
+		else
+			local target = lanePoint(bot.lane)
+			setWalking(bot, true)
+			if bot.kind == "rig" then
+				local t0 = os.clock()
+				while bot.alive and not bot.busy and os.clock() - t0 < 30 do
+					local pos = bot.root.Position
+					if Vector3.new(pos.X - target.X, 0, pos.Z - target.Z).Magnitude < 2.5 then break end
+					bot.hum:MoveTo(target)
+					task.wait(0.4)
+				end
+				if bot.alive then bot.hum:MoveTo(bot.root.Position) end
+			else
+				glide(bot, target)
+			end
+			setWalking(bot, false)
+			if bot.alive and not bot.busy then task.wait(math.random(20, 60) / 10) end
+			if bot.alive and not bot.busy and os.clock() > bot.expire then despawnBot(bot, true) end
+		end
+	end
+end
+
+local function spawnBot(level, silent)
+	if countBots() >= BOT_CAP then return end
+	botSeq += 1
+	local id = botSeq
+	local t = TIERS[level]
+	local d = levelData(level)
+	local lane = LANES[math.random(1, #LANES)]
+	local pos = lanePoint(lane)
+	local bot = {
+		id = id, level = level, d = d, alive = true, busy = false, tierName = t.name, speed = t.speed,
+		lane = lane, expire = os.clock() + ((level >= 5) and 300 or math.random(150, 300)),
+	}
+	local model = createBotModel(d)
+	local hum, root
+	if model then
+		hum = model:FindFirstChildOfClass("Humanoid")
+		root = model:FindFirstChild("HumanoidRootPart")
+		if not hum or not root then
+			model:Destroy()
+			model = nil
+		end
+	end
+	if model then
+		bot.kind = "rig"
+		model.Name = "Bot_" .. t.name
+		hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+		hum.WalkSpeed = t.speed
+		model:PivotTo(CFrame.new(pos))
+		model.Parent = botsFolder
+		scaleRig(model, d)
+		pcall(function() root:SetNetworkOwner(nil) end)
+		bot.idle, bot.walk = loadAnims(hum)
+		if bot.idle then bot.idle:Play() end
+	else
+		bot.kind = "dummy"
+		model = buildDummy(CFrame.new(pos.X, 3.3, pos.Z), t.name)
+		model.Parent = botsFolder
+		root = model.PrimaryPart
+	end
+	bot.model, bot.hum, bot.root = model, hum, root
+	bots[id] = bot
+	local pr = Instance.new("ProximityPrompt")
+	pr.ActionText = "Defier en Mog Battle"
+	pr.ObjectText = t.name .. " - MOG " .. mogScore(d)
+	pr.HoldDuration = 0.3
+	pr.MaxActivationDistance = 12
+	pr.RequiresLineOfSight = false
+	pr:SetAttribute("BotId", id)
+	pr.Parent = root
+	bot.prompt = pr
+	if level >= 5 then
+		local e = Instance.new("ParticleEmitter")
+		e.Color = ColorSequence.new(t.col)
+		e.LightEmission = 1
+		e.Rate = 14 + level * 3
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.Speed = NumberRange.new(2, 4)
+		e.Lifetime = NumberRange.new(1, 1.6)
+		e.Size = NumberSequence.new(0.5, 0)
+		e.Acceleration = Vector3.new(0, 4, 0)
+		e.Parent = root
+	end
+	task.delay(0.7, function()
+		if not bot.alive or not model.Parent then return end
+		if bot.kind == "rig" then dress(model, d, { seed = id, face = true }) end
+		addTag(model, t.name, "MOG " .. mogScore(d), t.col)
+	end)
+	if not silent and level >= 4 then
+		local msgs = {
+			[4] = "Un HTN se balade dans Mog Street...",
+			[5] = "Un CHADLITE vient d'apparaitre dans Mog Street !",
+			[6] = "UN CHAD A SPAWN ! Va le mog avant qu'il parte !",
+		}
+		announce(msgs[level], t.col, level)
+	end
+	task.spawn(runBot, bot)
+end
+
+task.spawn(function()
+	task.wait(4)
+	for _ = 1, 8 do
+		task.spawn(spawnBot, rollLevel(), true)
+		task.wait(0.4)
+	end
+	while true do
+		task.wait(6)
+		if countBots() < BOT_CAP and math.random() < 0.75 then
+			task.spawn(spawnBot, rollLevel(), false)
+		end
+	end
+end)
+
 local function runBattle(f1, f2, isAI)
 	battleCount += 1
 	local b = { id = battleCount, f = { f1, f2 }, moves = {}, open = false }
@@ -980,6 +1494,7 @@ local function runBattle(f1, f2, isAI)
 			local hrp = f.plr.Character and f.plr.Character:FindFirstChild("HumanoidRootPart")
 			if not hrp or f.plr:GetAttribute("Busy") then
 				battles[b.id] = nil
+				if f2.botRef then releaseBot(f2.botRef) end
 				return
 			end
 		end
@@ -993,8 +1508,34 @@ local function runBattle(f1, f2, isAI)
 			f.model = f.plr.Character
 			f.model:PivotTo(f.home)
 			f.model.HumanoidRootPart.Anchored = true
+		elseif f.botRef and f.botRef.alive then
+			local clone = f.botRef.model:Clone()
+			for _, x in ipairs(clone:GetDescendants()) do
+				if x:IsA("ProximityPrompt") or x:IsA("BaseScript") then x:Destroy() end
+			end
+			clone.Name = "MogFighter"
+			local cr = clone:FindFirstChild("HumanoidRootPart") or clone.PrimaryPart
+			if cr then cr.Anchored = true end
+			clone.Parent = Workspace
+			clone:PivotTo(f.home)
+			f.model = clone
 		else
-			f.model = buildDummy(f.home, f.name)
+			local rig = createBotModel(f.d)
+			local hrp = rig and rig:FindFirstChild("HumanoidRootPart")
+			if rig and hrp then
+				rig.Name = "MogFighter"
+				hrp.Anchored = true
+				rig:PivotTo(f.home)
+				rig.Parent = Workspace
+				scaleRig(rig, f.d)
+				f.model = rig
+				task.wait(0.7)
+				dress(rig, f.d, { seed = 77 + i, face = true })
+				addTag(rig, f.name, nil, TIERS[f.diff or 2].col)
+			else
+				if rig then rig:Destroy() end
+				f.model = buildDummy(f.home, f.name)
+			end
 		end
 	end
 
@@ -1037,7 +1578,7 @@ local function runBattle(f1, f2, isAI)
 				if f.plr then
 					b.moves[i] = { move = MOVE_LIST[math.random(1, 3)], timing = 0.25 }
 				else
-					b.moves[i] = { move = aiPick(f.d), timing = math.clamp(0.3 + (f.diff or 2) * 0.17 + math.random() * 0.2, 0, 1) }
+					b.moves[i] = { move = aiPick(f.d), timing = math.clamp(0.28 + (f.diff or 2) * 0.09 + math.random() * 0.18, 0, 1) }
 				end
 			end
 		end
@@ -1108,8 +1649,12 @@ local function runBattle(f1, f2, isAI)
 			if won then
 				data[f.plr].Wins += 1
 				local pick = ({ "Face", "Frame", "Height", "Bodyfat" })[math.random(1, 4)]
-				local got = bump(f.plr, pick, 2)
+				local lvl = f2.diff or 2
+				local got = bump(f.plr, pick, isAI and (2 + math.floor(lvl / 2)) or 2)
 				reward = "+" .. got .. " " .. string.upper(pick)
+				if isAI and lvl >= 5 then
+					announce(f.plr.DisplayName .. " a MOG un " .. TIERS[lvl].name .. " !", TIERS[lvl].col, lvl)
+				end
 			end
 			R.BattleState:FireClient(f.plr, "end", { result = won and "win" or "lose", reward = reward, ai = isAI })
 		end
@@ -1129,6 +1674,9 @@ local function runBattle(f1, f2, isAI)
 		elseif f.model then
 			f.model:Destroy()
 		end
+	end
+	if f2.botRef then
+		if winIdx == 1 then despawnBot(f2.botRef, true) else releaseBot(f2.botRef) end
 	end
 	battles[b.id] = nil
 end
@@ -1164,14 +1712,31 @@ local function newFighter(plr)
 	return { plr = plr, d = data[plr], name = plr.DisplayName }
 end
 
+PPS.PromptTriggered:Connect(function(prompt, plr)
+	local id = prompt:GetAttribute("BotId")
+	if not id then return end
+	local bot = bots[id]
+	if not bot or not bot.alive or bot.busy or not data[plr] or plr:GetAttribute("Busy") then return end
+	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+	if not root or (root.Position - bot.root.Position).Magnitude > 22 then return end
+	bot.busy = true
+	if bot.kind == "rig" then
+		bot.hum:MoveTo(bot.root.Position)
+		bot.root.Anchored = true
+	end
+	prompt.Enabled = false
+	setWalking(bot, false)
+	task.spawn(runBattle, newFighter(plr), { name = bot.tierName, d = bot.d, diff = bot.level, botRef = bot }, true)
+end)
+
 R.BattleRequest.OnServerEvent:Connect(function(plr, mode, diff)
 	if not data[plr] or plr:GetAttribute("Busy") then return end
 	local key = "b" .. plr.UserId
 	if cooldown[key] and os.clock() - cooldown[key] < 3 then return end
 	cooldown[key] = os.clock()
 	if mode == "AI" then
-		diff = math.clamp(math.floor(tonumber(diff) or 2), 1, 3)
-		local f2 = { name = ({ "Bot ROOKIE", "Bot MOGLORD", "Bot SIGMA" })[diff], d = makeAIData(data[plr], diff), diff = diff }
+		diff = math.clamp(math.floor(tonumber(diff) or 2), 1, 6)
+		local f2 = { name = TIERS[diff].name, d = levelData(diff), diff = diff }
 		task.spawn(runBattle, newFighter(plr), f2, true)
 	elseif mode == "PVP" then
 		local opp = nearestOpponent(plr)
@@ -1212,6 +1777,14 @@ local PLACES = {
 	bodyfat = Vector3.new(58, 4, 13),
 	spawn = Vector3.new(0, 4, 112),
 }
+R.TutorialDone.OnServerEvent:Connect(function(plr)
+	if data[plr] then
+		data[plr].Tut = 1
+		plr:SetAttribute("Busy", nil)
+		pcall(function() store:SetAsync(tostring(plr.UserId), data[plr]) end)
+	end
+end)
+
 R.TeleportTo.OnServerEvent:Connect(function(plr, key)
 	local pos = PLACES[key]
 	if not pos or plr:GetAttribute("Busy") or not data[plr] then return end
@@ -1252,6 +1825,16 @@ local function onPlayer(plr)
 	pushAttrs(plr)
 	updateRanks()
 	local function onChar(char)
+		if data[plr] and data[plr].Tut == 0 and not plr:GetAttribute("TutSent") then
+			plr:SetAttribute("TutSent", true)
+			task.delay(2.5, function()
+				if plr.Parent then
+					plr:SetAttribute("Busy", true)
+					R.Tutorial:FireClient(plr)
+					task.delay(240, function() if plr.Parent then plr:SetAttribute("Busy", nil) end end)
+				end
+			end)
+		end
 		char:WaitForChild("Humanoid")
 		char:WaitForChild("BodyColors", 6)
 		task.wait(0.3)
@@ -1287,7 +1870,7 @@ task.spawn(function()
 	boardLabel = sg and sg:WaitForChild("BoardText", 60)
 	updateRanks()
 end)
-]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX12"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX11"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX4"><Properties><string name="Name">MogClient</string><ProtectedString name="Source"><![CDATA[-- MogClient : LocalScript (StarterPlayer > StarterPlayerScripts)
+]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX13"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX12"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX5"><Properties><string name="Name">MogClient</string><ProtectedString name="Source"><![CDATA[-- MogClient : LocalScript (StarterPlayer > StarterPlayerScripts)
 -- 3 boutons a droite (STATS / BATTLE / MAP), menu Mog Stats (affichage uniquement),
 -- mini-jeux des stations, Mog Battle, notifications.
 -- Les ModuleScripts Studs, Minigames et BattleUI sont enfants de ce script.
@@ -1300,6 +1883,7 @@ local Workspace = game:GetService("Workspace")
 local S = require(script:WaitForChild("Studs"))
 local Minigames = require(script:WaitForChild("Minigames"))
 local Battle = require(script:WaitForChild("BattleUI"))
+local Tutorial = require(script:WaitForChild("Tutorial"))
 local C, make, tween = S.C, S.make, S.tween
 
 local player = Players.LocalPlayer
@@ -1312,6 +1896,7 @@ Battle.init(gui, remotes)
 
 local busy = false
 local side
+local startTutorial
 
 ------------------------------------------------------------------
 -- NOTIFICATIONS
@@ -1332,6 +1917,33 @@ local function toast(text, kind)
 	end)
 end
 remotes.Toast.OnClientEvent:Connect(toast)
+
+local announceFrame
+local function announce(text, col, level)
+	if announceFrame then announceFrame:Destroy() end
+	local f = S.panel(gui, { Name = "Announce", Size = UDim2.fromScale(0.62, 0.13), Position = UDim2.fromScale(0.5, -0.2), AnchorPoint = Vector2.new(0.5, 0), color = C.panel, cols = 30, rows = 4, z = 95, strokeColor = col, stroke = 4 })
+	make("Frame", { Size = UDim2.fromScale(0.012, 0.8), Position = UDim2.fromScale(0.02, 0.1), BackgroundColor3 = col, BorderSizePixel = 0, ZIndex = 97 }, f)
+	S.label(f, "ANNONCE SERVEUR", { Size = UDim2.fromScale(0.3, 0.2), Position = UDim2.fromScale(0.05, 0.08), color = col, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 98 })
+	S.label(f, text, { Size = UDim2.fromScale(0.92, 0.5), Position = UDim2.fromScale(0.05, 0.34), xAlign = Enum.TextXAlignment.Left, z = 98 })
+	announceFrame = f
+	tween(f, 0.5, { Position = UDim2.fromScale(0.5, 0.1) }, Enum.EasingStyle.Back)
+	S.sfx("ping")
+	if level >= 6 then
+		S.flash(gui, col, 0.6, 0.8)
+		S.confetti(gui, 60)
+		S.shake(f, 10, 0.5)
+		S.sfx("hit")
+	elseif level >= 5 then
+		S.flash(gui, col, 0.8, 0.5)
+	end
+	task.delay(level >= 6 and 8 or 5.5, function()
+		if f.Parent then
+			tween(f, 0.4, { Position = UDim2.fromScale(0.5, -0.2) })
+			task.delay(0.45, function() f:Destroy() end)
+		end
+	end)
+end
+remotes.Announce.OnClientEvent:Connect(announce)
 
 ------------------------------------------------------------------
 -- MOG STATS (affichage uniquement, pas de bouton d'amelioration)
@@ -1412,6 +2024,7 @@ local vp = make("ViewportFrame", {
 }, avBox)
 local vpCam = make("Camera", { FieldOfView = 40 }, vp)
 vp.CurrentCamera = vpCam
+local tierLbl = S.label(avBox, "SUB-5", { Size = UDim2.fromScale(0.9, 0.12), Position = UDim2.fromScale(0.05, 0.86), z = 19 })
 local scorePanel = S.panel(stats, { Size = UDim2.fromScale(0.27, 0.185), Position = UDim2.fromScale(0.69, 0.7), color = C.panel, z = 16, stroke = 3 })
 S.label(scorePanel, "MOG SCORE", { Size = UDim2.fromScale(0.8, 0.2), Position = UDim2.fromScale(0.1, 0.06), color = C.purple, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 18 })
 local scoreLbl = S.label(scorePanel, "0", { Size = UDim2.fromScale(0.8, 0.25), Position = UDim2.fromScale(0.1, 0.26), xAlign = Enum.TextXAlignment.Left, z = 18 })
@@ -1443,6 +2056,8 @@ local function refreshStats(animate)
 			end
 		end
 	end
+	local tier = S.TIERS[player:GetAttribute("TierId") or 1]
+	tierLbl.Text, tierLbl.TextColor3 = tier.name, tier.col
 	scoreLbl.Text = tostring(player:GetAttribute("MogScore") or 0)
 	rankLbl.Text = "#" .. tostring(player:GetAttribute("Rank") or 1)
 end
@@ -1496,7 +2111,7 @@ local function openStats()
 end
 closeX.Activated:Connect(closeStats)
 
-for _, k in ipairs({ "Face", "Frame", "Height", "Bodyfat", "MogScore", "Rank" }) do
+for _, k in ipairs({ "Face", "Frame", "Height", "Bodyfat", "MogScore", "Rank", "TierId" }) do
 	player:GetAttributeChangedSignal(k):Connect(function()
 		if statsOpen then
 			refreshStats(false)
@@ -1520,8 +2135,8 @@ end
 
 local function openMap()
 	if mapPanel or busy or Battle.active then return end
-	mapPanel = S.panel(gui, { Name = "MapPanel", Size = UDim2.fromScale(0.44, 0.62), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 18, rows = 16, z = 20 })
-	make("UIAspectRatioConstraint", { AspectRatio = 1.1 }, mapPanel)
+	mapPanel = S.panel(gui, { Name = "MapPanel", Size = UDim2.fromScale(0.46, 0.7), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 18, rows = 18, z = 20 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1.0 }, mapPanel)
 	local sc = make("UIScale", { Scale = 0.4 }, mapPanel)
 	tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
 	S.title(mapPanel, "MOG MAP", UDim2.fromScale(0.6, 0.15), UDim2.fromScale(0.04, 0.03), C.blue)
@@ -1532,13 +2147,20 @@ local function openMap()
 		{ "FACE LAB", "face", C.pink }, { "IRON GYM", "frame", C.orange },
 		{ "HEIGHT DOJO", "height", C.blue }, { "CARDIO CLUB", "bodyfat", Color3.fromRGB(60, 170, 90) },
 		{ "ARENE", "arena", Color3.fromRGB(120, 60, 210) }, { "SPAWN", "spawn", C.brickLight },
+		{ "TUTORIEL", "tuto", Color3.fromRGB(176, 130, 40) }, { "NIVEAUX", "tiers", Color3.fromRGB(150, 70, 110) },
 	}
 	for i, it in ipairs(list) do
 		local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
-		local b = S.button(mapPanel, it[1], { Size = UDim2.fromScale(0.43, 0.17), Position = UDim2.fromScale(0.05 + col * 0.47, 0.25 + row * 0.23), color = it[3], cols = 9, rows = 3, z = 22 })
+		local b = S.button(mapPanel, it[1], { Size = UDim2.fromScale(0.43, 0.14), Position = UDim2.fromScale(0.05 + col * 0.47, 0.24 + row * 0.17), color = it[3], cols = 9, rows = 3, z = 22 })
 		b.Activated:Connect(function()
-			remotes.TeleportTo:FireServer(it[2])
 			closeMap()
+			if it[2] == "tuto" then
+				task.spawn(startTutorial, false)
+			elseif it[2] == "tiers" then
+				Tutorial.showTiers(gui)
+			else
+				remotes.TeleportTo:FireServer(it[2])
+			end
 		end)
 	end
 end
@@ -1631,6 +2253,28 @@ remotes.StationResult.OnClientEvent:Connect(function(stat, gain, value)
 	Minigames.showGain(stat, gain, value)
 end)
 
+startTutorial = function(first)
+	if busy or Battle.active or Tutorial.running then return end
+	busy = true
+	closeStats()
+	closeMap()
+	setSideVisible()
+	freeze(true)
+	Tutorial.play(gui, {
+		side = side,
+		buttons = { { btnStats, "STATS : tes stats" }, { btnBattle, "BATTLE : duels" }, { btnMap, "MAP : teleportation" } },
+	}, function()
+		freeze(false)
+		busy = false
+		setSideVisible()
+		if first then remotes.TutorialDone:FireServer() end
+		toast("Objectif : va t'entrainer a une station (bouton MAP) !", "good")
+	end)
+end
+remotes.Tutorial.OnClientEvent:Connect(function()
+	task.spawn(startTutorial, true)
+end)
+
 toast("Bienvenue a MOG STREET ! Utilise les 3 boutons a droite.", "info")
 ]]></ProtectedString></Properties><Item class="ModuleScript" referent="RBX1"><Properties><string name="Name">Studs</string><ProtectedString name="Source"><![CDATA[-- Studs : ModuleScript (enfant de MogClient) - UI style briques/studs + effets
 local TweenService = game:GetService("TweenService")
@@ -1646,6 +2290,15 @@ local C = {
 	white = Color3.fromRGB(236, 238, 244), black = Color3.fromRGB(14, 14, 18), panel = Color3.fromRGB(22, 23, 29),
 }
 M.C = C
+
+M.TIERS = {
+	{ name = "SUB-5", col = Color3.fromRGB(140, 200, 120), rarity = "45%", desc = "Le bas du bas. Facile a mog." },
+	{ name = "LTN", col = Color3.fromRGB(175, 175, 188), rarity = "28%", desc = "Low Tier Normie." },
+	{ name = "MTN", col = Color3.fromRGB(110, 170, 255), rarity = "15%", desc = "Mid Tier Normie." },
+	{ name = "HTN", col = Color3.fromRGB(255, 170, 70), rarity = "8%", desc = "High Tier Normie. Dangereux." },
+	{ name = "CHADLITE", col = Color3.fromRGB(255, 110, 200), rarity = "3.5%", desc = "Presque parfait." },
+	{ name = "CHAD", col = Color3.fromRGB(255, 214, 70), rarity = "0.5%", desc = "Le boss de la ville." },
+}
 
 local function make(class, props, parent)
 	local i = Instance.new(class)
@@ -2375,12 +3028,13 @@ function M.openMenu()
 	local x = S.button(menu, "X", { Size = UDim2.fromScale(0.1, 0.1), Position = UDim2.fromScale(0.86, 0.03), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 6 })
 	make("UIAspectRatioConstraint", { AspectRatio = 1 }, x)
 	x.Activated:Connect(closeMenu)
+	local T = S.TIERS
 	local list = {
-		{ "VS BOT ROOKIE", C.green, "AI", 1 }, { "VS BOT MOGLORD", C.orange, "AI", 2 },
-		{ "VS BOT SIGMA", C.red, "AI", 3 }, { "VS JOUEUR PROCHE", Color3.fromRGB(120, 60, 210), "PVP", 0 },
+		{ "VS SUB-5", T[1].col, "AI", 1 }, { "VS MTN", T[3].col, "AI", 3 }, { "VS HTN", T[4].col, "AI", 4 },
+		{ "VS CHAD", T[6].col, "AI", 6 }, { "VS JOUEUR PROCHE", Color3.fromRGB(120, 60, 210), "PVP", 0 },
 	}
 	for i, it in ipairs(list) do
-		local b = S.button(menu, it[1], { Size = UDim2.fromScale(0.84, 0.13), Position = UDim2.fromScale(0.08, 0.28 + (i - 1) * 0.165), color = it[2], cols = 14, rows = 3, z = 6 })
+		local b = S.button(menu, it[1], { Size = UDim2.fromScale(0.84, 0.115), Position = UDim2.fromScale(0.08, 0.27 + (i - 1) * 0.14), color = it[2]:Lerp(C.black, 0.25), cols = 14, rows = 3, z = 6 })
 		b.Activated:Connect(function()
 			remotes.BattleRequest:FireServer(it[3], it[4])
 			closeMenu()
@@ -2651,6 +3305,267 @@ function M.init(g, rem)
 			end)
 		end
 	end)
+end
+
+return M
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX4"><Properties><string name="Name">Tutorial</string><ProtectedString name="Source"><![CDATA[-- Tutorial : ModuleScript (enfant de MogClient) - cinematique d'introduction + fiche des niveaux
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local S = require(script.Parent.Studs)
+local C, make, tween = S.C, S.make, S.tween
+
+local M = {}
+M.running = false
+
+local function corner(o, r) make("UICorner", { CornerRadius = UDim.new(r or 0.2, 0) }, o) end
+
+------------------------------------------------------------------
+-- FICHE DES NIVEAUX (SUB-5 -> CHAD)
+------------------------------------------------------------------
+function M.buildTierCard(parent, pos, size, animate)
+	local card = S.panel(parent, { Name = "TierCard", Size = size, Position = pos, cols = 16, rows = 20, z = 110 })
+	S.title(card, "NIVEAUX", UDim2.fromScale(0.7, 0.11), UDim2.fromScale(0.15, 0.02), C.yellow)
+	for i, t in ipairs(S.TIERS) do
+		local y = 0.16 + (i - 1) * 0.138
+		local row = make("Frame", { BackgroundColor3 = C.panel, Size = UDim2.fromScale(0.92, 0.12), Position = UDim2.fromScale(0.04, y), BorderSizePixel = 0, ZIndex = 112 }, card)
+		corner(row, 0.15)
+		make("UIStroke", { Color = t.col, Thickness = 2 }, row)
+		make("Frame", { BackgroundColor3 = t.col, Size = UDim2.fromScale(0.035, 0.8), Position = UDim2.fromScale(0.02, 0.1), BorderSizePixel = 0, ZIndex = 113 }, row)
+		S.label(row, t.name, { Size = UDim2.fromScale(0.45, 0.5), Position = UDim2.fromScale(0.08, 0.06), color = t.col, xAlign = Enum.TextXAlignment.Left, z = 114 })
+		S.label(row, "RARETE " .. t.rarity, { Size = UDim2.fromScale(0.4, 0.4), Position = UDim2.fromScale(0.57, 0.08), color = C.white, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Right, z = 114 })
+		S.label(row, t.desc, { Size = UDim2.fromScale(0.88, 0.32), Position = UDim2.fromScale(0.08, 0.6), color = Color3.fromRGB(176, 180, 194), font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, stroke = false, z = 114 })
+		if animate then
+			row.Position = UDim2.fromScale(1.2, y)
+			task.delay(0.4 + (i - 1) * 0.3, function()
+				if row.Parent then
+					tween(row, 0.5, { Position = UDim2.fromScale(0.04, y) }, Enum.EasingStyle.Back)
+					S.sfx("ping")
+				end
+			end)
+		end
+	end
+	return card
+end
+
+function M.showTiers(gui)
+	if gui:FindFirstChild("TierPopup") then return end
+	local pop = make("Frame", { Name = "TierPopup", BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.45, Size = UDim2.fromScale(1, 1), ZIndex = 30, Active = true }, gui)
+	local card = M.buildTierCard(pop, UDim2.fromScale(0.5, 0.5), UDim2.fromScale(0.42, 0.88), false)
+	card.AnchorPoint = Vector2.new(0.5, 0.5)
+	make("UIAspectRatioConstraint", { AspectRatio = 0.82 }, card)
+	local sc = make("UIScale", { Scale = 0.5 }, card)
+	tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+	local x = S.button(card, "X", { Size = UDim2.fromScale(0.1, 0.08), Position = UDim2.fromScale(0.86, 0.02), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 120 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1 }, x)
+	x.Activated:Connect(function() pop:Destroy() end)
+end
+
+------------------------------------------------------------------
+-- CINEMATIQUE
+------------------------------------------------------------------
+local function typeText(label, text, speed)
+	local token = (label:GetAttribute("tt") or 0) + 1
+	label:SetAttribute("tt", token)
+	label.Text = text
+	label.MaxVisibleGraphemes = 0
+	local n = utf8.len(text) or #text
+	task.spawn(function()
+		for i = 1, n do
+			if not label.Parent or label:GetAttribute("tt") ~= token then return end
+			label.MaxVisibleGraphemes = i
+			task.wait(speed or 0.03)
+		end
+	end)
+end
+
+local function orbit(c, r, h, a0, a1, ly)
+	return function(a)
+		local ang = a0 + (a1 - a0) * a
+		return c + Vector3.new(math.sin(ang) * r, h, math.cos(ang) * r), c + Vector3.new(0, ly or 5, 0)
+	end
+end
+
+local function line(p0, l0, p1, l1)
+	return function(a) return p0:Lerp(p1, a), l0:Lerp(l1, a) end
+end
+
+local function buildShots(spawnPos)
+	local T = S.TIERS
+	return {
+		{
+			dur = 8.5, fov = { 74, 58 }, focus = 120, title = true,
+			cap = "Bienvenue a MOG STREET. Ici, tout se joue sur une seule chose : le mog.",
+			f = line(Vector3.new(0, 165, 205), Vector3.new(0, 10, 0), Vector3.new(0, 62, 132), Vector3.new(0, 8, 22)),
+		},
+		{
+			dur = 8, fov = { 64, 56 }, focus = 70,
+			cap = "Ton visage, ta carrure, ta taille, ton physique : chaque stat change vraiment ton apparence.",
+			f = line(Vector3.new(0, 5, 112), Vector3.new(0, 9, 0), Vector3.new(0, 6.5, 50), Vector3.new(0, 9, -6)),
+		},
+		{
+			dur = 7.5, fov = { 66, 54 }, focus = 38, chip = { "FRAME", Color3.fromRGB(214, 112, 48) },
+			cap = "IRON GYM : souleve de la fonte pour gagner de la FRAME.",
+			f = orbit(Vector3.new(-58, 5, -22), 34, 13, 0.2, 1.2, 6),
+		},
+		{
+			dur = 7.5, fov = { 66, 54 }, focus = 38, chip = { "FACE", Color3.fromRGB(200, 92, 112) },
+			cap = "FACE LAB : soigne ta peau, fais disparaitre les boutons, deviens beau.",
+			f = orbit(Vector3.new(58, 5, -22), 34, 13, -1.2, -0.2, 6),
+		},
+		{
+			dur = 7.5, fov = { 64, 54 }, focus = 38, chip = { "HEIGHT", Color3.fromRGB(70, 150, 200) },
+			cap = "HEIGHT DOJO : etire-toi, grandis, et ton personnage prendra de la taille.",
+			f = orbit(Vector3.new(-58, 5, 22), 34, 13, math.pi - 1.0, math.pi + 0.1, 6),
+		},
+		{
+			dur = 7.5, fov = { 66, 54 }, focus = 38, chip = { "BODYFAT", Color3.fromRGB(80, 170, 110) },
+			cap = "CARDIO CLUB : cours, esquive, et perds ton bodyfat pour afficher des abdos.",
+			f = orbit(Vector3.new(58, 5, 22), 34, 13, math.pi + 1.0, math.pi - 0.1, 6),
+		},
+		{
+			dur = 8, fov = { 68, 56 }, focus = 55,
+			cap = "Au centre : l'arene. Defie des bots ou d'autres joueurs en Mog Battle.",
+			f = orbit(Vector3.new(0, 4, 0), 40, 15, 0, 2.4, 6),
+		},
+		{
+			dur = 11, fov = { 62, 54 }, focus = 75, tiers = true,
+			cap = "Des bots de tous les niveaux se promenent en ville, du SUB-5 au CHAD. Plus ils sont forts, plus ils sont rares. Mog-les tous !",
+			f = line(Vector3.new(0, 5, 78), Vector3.new(0, 7, 0), Vector3.new(0, 6, 64), Vector3.new(0, 7, 0)),
+		},
+		{
+			dur = 11, fov = { 60, 52 }, focus = 22, buttons = true,
+			cap = "Tes 3 boutons : STATS pour suivre ton evolution, BATTLE pour les duels, MAP pour te teleporter. A toi de monter jusqu'a CHAD !",
+			f = function(a)
+				return spawnPos + Vector3.new(0, 4.6 - 1.2 * a, 15 - 5 * a), spawnPos + Vector3.new(0, 3, 0)
+			end,
+		},
+	}
+end
+
+function M.play(gui, ui, onDone)
+	if M.running then return end
+	M.running = true
+	local player = Players.LocalPlayer
+	local cam = Workspace.CurrentCamera
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local SHOTS = buildShots(hrp and hrp.Position or Vector3.new(0, 4, 118))
+	local skipped = false
+
+	local dof = make("DepthOfFieldEffect", { Name = "TutoDoF", FarIntensity = 0.3, NearIntensity = 0, FocusDistance = 60, InFocusRadius = 30 }, Lighting)
+	local cc = make("ColorCorrectionEffect", { Name = "TutoCC", Contrast = 0.1, Saturation = 0.1, TintColor = Color3.fromRGB(255, 244, 230) }, Lighting)
+	local blur = make("BlurEffect", { Name = "TutoBlur", Size = 18 }, Lighting)
+
+	local root = make("Frame", { Name = "Cinematic", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 100, Active = true }, gui)
+	local barT = make("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), Size = UDim2.fromScale(1, 0.12), Position = UDim2.fromScale(0, -0.12), BorderSizePixel = 0, ZIndex = 3 }, root)
+	local barB = make("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), Size = UDim2.fromScale(1, 0.12), Position = UDim2.fromScale(0, 1), BorderSizePixel = 0, ZIndex = 3 }, root)
+	tween(barT, 0.9, { Position = UDim2.fromScale(0, 0) })
+	tween(barB, 0.9, { Position = UDim2.fromScale(0, 0.88) })
+	local chapter = S.label(root, "", { Size = UDim2.fromScale(0.3, 0.05), Position = UDim2.fromScale(0.03, 0.035), color = Color3.fromRGB(210, 212, 224), font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 6 })
+	local skipBtn = S.button(root, "PASSER", { Size = UDim2.fromScale(0.12, 0.06), Position = UDim2.fromScale(0.85, 0.03), color = C.brick, cols = 6, rows = 2, z = 8 })
+	skipBtn.Activated:Connect(function() skipped = true end)
+	local cap = S.panel(root, { Size = UDim2.fromScale(0.64, 0.14), Position = UDim2.fromScale(0.18, 0.745), cols = 30, rows = 5, color = C.panel, z = 5 })
+	S.label(cap, "NARRATEUR", { Size = UDim2.fromScale(0.2, 0.2), Position = UDim2.fromScale(0.03, 0.06), color = C.yellow, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 7 })
+	local capLbl = S.label(cap, "", { Size = UDim2.fromScale(0.94, 0.6), Position = UDim2.fromScale(0.03, 0.3), font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, stroke = false, z = 7 })
+	capLbl.TextWrapped = true
+	local fade = make("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), Size = UDim2.fromScale(1, 1), ZIndex = 50, BorderSizePixel = 0 }, root)
+
+	local conns, extras = {}, {}
+	local chip
+
+	local function cleanup()
+		for _, c in ipairs(conns) do c:Disconnect() end
+		cam.CameraType = Enum.CameraType.Custom
+		cam.FieldOfView = 70
+		if hum then cam.CameraSubject = hum end
+		dof:Destroy()
+		cc:Destroy()
+		blur:Destroy()
+		root:Destroy()
+		if ui.side then ui.side.Visible = false end
+		for _, o in ipairs(extras) do if o.Parent then o:Destroy() end end
+	end
+
+	local ok, err = pcall(function()
+		cam.CameraType = Enum.CameraType.Scriptable
+		task.wait(0.4)
+		for i, shot in ipairs(SHOTS) do
+			if skipped then break end
+			chapter.Text = string.format("%02d / %02d   MOG STREET", i, #SHOTS)
+			typeText(capLbl, shot.cap, 0.032)
+			if chip then chip:Destroy() chip = nil end
+			if shot.chip then
+				chip = S.panel(root, { Size = UDim2.fromScale(0.2, 0.09), Position = UDim2.fromScale(-0.3, 0.16), cols = 10, rows = 3, color = C.panel, z = 6 })
+				S.label(chip, shot.chip[1], { Size = UDim2.fromScale(0.86, 0.6), Position = UDim2.fromScale(0.07, 0.2), color = shot.chip[2], z = 8 })
+				tween(chip, 0.6, { Position = UDim2.fromScale(0.03, 0.16) }, Enum.EasingStyle.Back)
+			end
+			if shot.title then
+				local grp = make("CanvasGroup", { BackgroundTransparency = 1, Size = UDim2.fromScale(0.8, 0.4), Position = UDim2.fromScale(0.1, 0.22), ZIndex = 4, GroupTransparency = 1 }, root)
+				S.title(grp, "MOG STREET", UDim2.fromScale(1, 0.62), UDim2.fromScale(0, 0), C.yellow)
+				S.label(grp, "LA VILLE DES MOGGERS", { Size = UDim2.fromScale(0.6, 0.14), Position = UDim2.fromScale(0.2, 0.66), font = Enum.Font.GothamBold, z = 6 })
+				task.delay(0.8, function() if grp.Parent then tween(grp, 0.9, { GroupTransparency = 0 }) end end)
+				task.delay(6.2, function() if grp.Parent then tween(grp, 0.9, { GroupTransparency = 1 }) task.delay(1, function() grp:Destroy() end) end end)
+			end
+			local card
+			if shot.tiers then
+				card = M.buildTierCard(root, UDim2.fromScale(0.62, 0.15), UDim2.fromScale(0.35, 0.58), true)
+			end
+			local marks = {}
+			if shot.buttons and ui.side then
+				ui.side.Visible = true
+				task.wait()
+				for _, e in ipairs(ui.buttons) do
+					local b = e[1]
+					local ap, asz = b.AbsolutePosition, b.AbsoluteSize
+					local hl = make("Frame", { BackgroundTransparency = 1, Size = UDim2.fromOffset(asz.X + 14, asz.Y + 14), Position = UDim2.fromOffset(ap.X - 7, ap.Y - 7), ZIndex = 20 }, root)
+					corner(hl, 0.15)
+					local st = make("UIStroke", { Color = C.yellow, Thickness = 4 }, hl)
+					local tx = S.label(root, e[2], { Size = UDim2.fromOffset(330, 36), Position = UDim2.fromOffset(ap.X - 346, ap.Y + asz.Y / 2 - 18), color = C.yellow, xAlign = Enum.TextXAlignment.Right, z = 20 })
+					table.insert(marks, hl)
+					table.insert(marks, tx)
+					table.insert(conns, RunService.RenderStepped:Connect(function()
+						st.Transparency = 0.5 + 0.5 * math.sin(os.clock() * 6)
+					end))
+				end
+			end
+			dof.FocusDistance = shot.focus or 50
+			fade.BackgroundTransparency = 0
+			tween(fade, 0.8, { BackgroundTransparency = 1 })
+			tween(blur, 0.8, { Size = 0 })
+			S.sfx("ping")
+			local t0, outDone = os.clock(), false
+			while not skipped do
+				local a = (os.clock() - t0) / shot.dur
+				if a >= 1 then break end
+				local e = a * a * (3 - 2 * a)
+				local pos, look = shot.f(e)
+				local n = os.clock() * 0.7
+				local sh = CFrame.new(math.noise(n, 1) * 0.18, math.noise(n, 5) * 0.18, 0) * CFrame.Angles(math.noise(n, 9) * 0.006, math.noise(n, 13) * 0.006, 0)
+				cam.CFrame = CFrame.lookAt(pos, look) * sh
+				cam.FieldOfView = shot.fov[1] + (shot.fov[2] - shot.fov[1]) * a
+				if not outDone and a > 1 - 0.7 / shot.dur then
+					outDone = true
+					tween(fade, 0.65, { BackgroundTransparency = 0 })
+					tween(blur, 0.65, { Size = 16 })
+				end
+				RunService.RenderStepped:Wait()
+			end
+			if card then card:Destroy() end
+			for _, o in ipairs(marks) do o:Destroy() end
+			if shot.buttons and ui.side then ui.side.Visible = false end
+		end
+		tween(barT, 0.6, { Position = UDim2.fromScale(0, -0.12) })
+		tween(barB, 0.6, { Position = UDim2.fromScale(0, 1) })
+		fade.BackgroundTransparency = 0
+		task.wait(0.7)
+	end)
+	if not ok then warn("Tutorial: " .. tostring(err)) end
+	cleanup()
+	M.running = false
+	if onDone then onDone(not skipped) end
 end
 
 return M
