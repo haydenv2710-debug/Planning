@@ -1,0 +1,2657 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><Meta name="ExplicitAutoJoints">true</Meta><Item class="Workspace" referent="RBX5"><Properties><string name="Name">Workspace</string></Properties></Item><Item class="Lighting" referent="RBX6"><Properties><string name="Name">Lighting</string></Properties></Item><Item class="ReplicatedStorage" referent="RBX7"><Properties><string name="Name">ReplicatedStorage</string></Properties></Item><Item class="ServerScriptService" referent="RBX10"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX8"><Properties><string name="Name">MogMap</string><ProtectedString name="Source"><![CDATA[-- MogMap : construit "MOG STREET CITY" (tout en studs, lumiere cosy)
+-- Script a placer dans ServerScriptService
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+
+for _, n in ipairs({ "Baseplate", "MogMap" }) do
+	local o = Workspace:FindFirstChild(n)
+	if o then o:Destroy() end
+end
+
+------------------------------------------------------------------
+-- ECLAIRAGE COSY MAIS LUMINEUX
+------------------------------------------------------------------
+for _, c in ipairs(Lighting:GetChildren()) do
+	if c:IsA("PostEffect") or c:IsA("Atmosphere") then c:Destroy() end
+end
+Lighting.ClockTime = 17.3
+Lighting.GeographicLatitude = 25
+Lighting.Brightness = 2.6
+Lighting.Ambient = Color3.fromRGB(128, 112, 108)
+Lighting.OutdoorAmbient = Color3.fromRGB(155, 136, 128)
+Lighting.ColorShift_Top = Color3.fromRGB(255, 205, 150)
+Lighting.EnvironmentDiffuseScale = 0.6
+Lighting.EnvironmentSpecularScale = 0.3
+Lighting.ExposureCompensation = 0.3
+Lighting.GlobalShadows = true
+Lighting.FogColor = Color3.fromRGB(255, 196, 160)
+Lighting.FogStart = 350
+Lighting.FogEnd = 1100
+
+local function fx(class, props)
+	local i = Instance.new(class)
+	for k, v in pairs(props) do i[k] = v end
+	i.Parent = Lighting
+	return i
+end
+fx("Atmosphere", { Density = 0.27, Offset = 0.25, Color = Color3.fromRGB(255, 208, 175), Decay = Color3.fromRGB(255, 150, 110), Glare = 0.2, Haze = 1.1 })
+fx("ColorCorrectionEffect", { Brightness = 0.02, Contrast = 0.1, Saturation = 0.14, TintColor = Color3.fromRGB(255, 244, 232) })
+fx("BloomEffect", { Intensity = 0.55, Size = 28, Threshold = 0.95 })
+fx("SunRaysEffect", { Intensity = 0.1, Spread = 0.6 })
+
+------------------------------------------------------------------
+-- OUTILS
+------------------------------------------------------------------
+local map = Instance.new("Folder")
+map.Name = "MogMap"
+map.Parent = Workspace
+local rng = Random.new(2026)
+local V3, CF = Vector3.new, CFrame.new
+local MAT = Enum.Material
+local function rgb(r, g, b) return Color3.fromRGB(r, g, b) end
+local WHITE = rgb(240, 236, 228)
+local C = {
+	asphalt = rgb(54, 56, 64), sidewalk = rgb(156, 150, 142), curb = rgb(214, 204, 186),
+	dark = rgb(34, 35, 42), steel = rgb(110, 116, 128), cream = rgb(238, 222, 188),
+	brick = rgb(150, 78, 62), wood = rgb(150, 98, 58), grass = rgb(96, 146, 86),
+	warm = rgb(255, 198, 120), red = rgb(190, 40, 40), blue = rgb(40, 110, 220),
+}
+
+local function part(size, cf, color, mat, props)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.Size = size
+	if typeof(cf) == "Vector3" then cf = CFrame.new(cf) end
+	p.CFrame = cf
+	p.Color = color
+	p.Material = mat or MAT.Plastic
+	p.TopSurface = Enum.SurfaceType.Studs
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	if size.Magnitude < 3.5 then p.CastShadow = false end
+	if props then for k, v in pairs(props) do p[k] = v end end
+	p.Parent = map
+	return p
+end
+
+local function gui(p, face, text, color, ppS)
+	local g = Instance.new("SurfaceGui")
+	g.Face = face
+	g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	g.PixelsPerStud = ppS or 40
+	g.LightInfluence = 0
+	g.Parent = p
+	local l = Instance.new("TextLabel")
+	l.Name = "BoardText"
+	l.Size = UDim2.fromScale(1, 1)
+	l.BackgroundTransparency = 1
+	l.Text = text
+	l.TextScaled = true
+	l.Font = Enum.Font.GothamBlack
+	l.TextColor3 = color
+	l.Parent = g
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Thickness = 2
+	s.Transparency = 0.55
+	s.Parent = l
+	return l
+end
+
+local function neonSign(cf, size, text, color, both)
+	local p = part(size, cf, rgb(22, 22, 28), MAT.Plastic, { TopSurface = Enum.SurfaceType.Smooth })
+	gui(p, Enum.NormalId.Front, text, color)
+	if both then gui(p, Enum.NormalId.Back, text, color) end
+	part(V3(size.X + 0.8, 0.3, size.Z + 0.3), cf * CF(0, size.Y / 2 + 0.15, 0), color, MAT.Neon)
+	part(V3(size.X + 0.8, 0.3, size.Z + 0.3), cf * CF(0, -size.Y / 2 - 0.15, 0), color, MAT.Neon)
+	return p
+end
+
+------------------------------------------------------------------
+-- PROPS
+------------------------------------------------------------------
+local function lamp(x, z, ang)
+	local b = CF(x, 0, z) * CFrame.Angles(0, ang, 0)
+	part(V3(1.8, 0.8, 1.8), b * CF(0, 0.4, 0), C.dark)
+	part(V3(0.8, 13, 0.8), b * CF(0, 6.5, 0), C.dark)
+	part(V3(0.6, 0.6, 4.4), b * CF(0, 13, -1.8), C.dark)
+	part(V3(1.8, 0.6, 2.4), b * CF(0, 12.7, -3.6), C.dark)
+	local bulb = part(V3(1.3, 0.4, 1.9), b * CF(0, 12.3, -3.6), rgb(255, 214, 150), MAT.Neon)
+	local pl = Instance.new("PointLight")
+	pl.Range = 30
+	pl.Brightness = 1.6
+	pl.Color = rgb(255, 200, 140)
+	pl.Shadows = false
+	pl.Parent = bulb
+end
+
+local function tree(x, z)
+	local col = ({ rgb(86, 140, 72), rgb(224, 142, 56), rgb(198, 98, 64), rgb(120, 164, 82) })[rng:NextInteger(1, 4)]
+	part(V3(4.4, 0.8, 4.4), CF(x, 0.4, z), C.brick)
+	part(V3(1.6, 5, 1.6), CF(x, 3.3, z), rgb(112, 76, 48))
+	part(V3(7, 3, 7), CF(x, 6.8, z), col)
+	part(V3(5, 3, 5), CF(x, 9.6, z), col:Lerp(WHITE, 0.08))
+	part(V3(3, 2.4, 3), CF(x, 12, z), col:Lerp(WHITE, 0.16))
+end
+
+local function car(base, color)
+	part(V3(8, 1.6, 4), base * CF(0, 1.4, 0), color)
+	part(V3(4.4, 1.5, 3.6), base * CF(-0.4, 3, 0), color:Lerp(WHITE, 0.1))
+	part(V3(4.6, 1.1, 3.7), base * CF(-0.4, 3.1, 0), rgb(120, 170, 200), MAT.Glass, { Transparency = 0.35 })
+	for _, sx in ipairs({ -2.6, 2.6 }) do
+		for _, sz in ipairs({ -2.1, 2.1 }) do
+			part(V3(1.8, 1.8, 0.7), base * CF(sx, 0.9, sz), rgb(25, 25, 28))
+		end
+	end
+	for _, sz in ipairs({ -1.3, 1.3 }) do
+		part(V3(0.3, 0.6, 0.8), base * CF(4.05, 1.6, sz), rgb(255, 240, 190), MAT.Neon)
+		part(V3(0.3, 0.6, 0.8), base * CF(-4.05, 1.6, sz), rgb(255, 50, 50), MAT.Neon)
+	end
+end
+
+local function bench(base)
+	part(V3(5, 0.4, 1.6), base * CF(0, 1.5, 0), C.wood)
+	part(V3(5, 1.4, 0.4), base * CF(0, 2.4, 0.7), C.wood)
+	for _, sx in ipairs({ -2.2, 2.2 }) do part(V3(0.4, 1.5, 1.6), base * CF(sx, 0.75, 0), C.dark) end
+end
+
+local function hydrant(x, z)
+	part(V3(1.2, 2.2, 1.2), CF(x, 1.1, z), C.red)
+	part(V3(1.6, 0.5, 1.6), CF(x, 2.3, z), C.red)
+	part(V3(2.2, 0.6, 0.6), CF(x, 1.5, z), C.red)
+end
+
+local function bin(x, z)
+	part(V3(2, 2.8, 2), CF(x, 1.4, z), rgb(70, 110, 96))
+	part(V3(2.3, 0.4, 2.3), CF(x, 2.9, z), C.dark)
+end
+
+local function crate(x, y, z, s)
+	part(V3(s, s, s), CF(x, y + s / 2, z) * CFrame.Angles(0, rng:NextNumber(0, 1), 0), C.wood)
+end
+
+local function firefly(pos, rate)
+	local a = part(V3(1, 1, 1), pos, WHITE, MAT.Plastic, { Transparency = 1, CanCollide = false, CanQuery = false })
+	local e = Instance.new("ParticleEmitter")
+	e.Rate = rate or 6
+	e.Lifetime = NumberRange.new(4, 7)
+	e.Speed = NumberRange.new(0.4, 1.2)
+	e.SpreadAngle = Vector2.new(180, 180)
+	e.Size = NumberSequence.new(0.35)
+	e.Color = ColorSequence.new(rgb(255, 214, 140))
+	e.LightEmission = 1
+	e.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.2, 0.2), NumberSequenceKeypoint.new(1, 1) })
+	e.Parent = a
+	local sh = Instance.new("Attachment")
+	sh.Parent = a
+end
+
+------------------------------------------------------------------
+-- BATIMENTS
+------------------------------------------------------------------
+local function windows(base, w, y0, h, cols, rows, z, lite)
+	local cw, rh = w / cols, (h - y0) / rows
+	for c = 1, cols do
+		for r = 1, rows do
+			local x = -w / 2 + (c - 0.5) * cw
+			local y = y0 + (r - 0.5) * rh
+			local lit = rng:NextNumber() < 0.65
+			if not lite then
+				part(V3(cw * 0.66, rh * 0.62, 0.2), base * CF(x, y, z + 0.1), rgb(40, 34, 38))
+			end
+			part(V3(cw * 0.5, rh * 0.48, 0.2), base * CF(x, y, z - 0.05), lit and rgb(255, 196, 112) or rgb(66, 78, 110), lit and MAT.Neon or MAT.Plastic)
+		end
+	end
+end
+
+-- base : centre bas de la facade, facade vers -Z, corps vers +Z
+local function building(base, w, d, h, wall, roof, noShopfront)
+	part(V3(w, h, d), base * CF(0, h / 2, d / 2), wall)
+	part(V3(w + 1.4, 1.2, d + 1.4), base * CF(0, h + 0.6, d / 2), roof)
+	part(V3(w + 0.8, 1.6, 0.8), base * CF(0, 0.8, -0.4), C.curb)
+	local floors = math.max(2, math.floor(h / 7))
+	for i = 1, floors - 1 do
+		part(V3(w + 0.8, 0.5, 0.9), base * CF(0, i * 7, -0.45), wall:Lerp(WHITE, 0.2))
+	end
+	if h > 12 then
+		windows(base, w - 5, 8, h - 1.5, math.max(2, math.floor(w / 6)), math.max(1, floors - 1), -0.2)
+	end
+	-- pilastres
+	for _, sx in ipairs({ -1, 1 }) do
+		part(V3(1.2, h, 1.2), base * CF(sx * (w / 2 - 0.2), h / 2, -0.4), wall:Lerp(WHITE, 0.15))
+	end
+	-- toit : clim, cheminee, citerne
+	for _ = 1, rng:NextInteger(1, 3) do
+		local x, z = rng:NextNumber(-w / 2 + 3, w / 2 - 3), rng:NextNumber(3, d - 3)
+		part(V3(3.4, 2.2, 3.4), base * CF(x, h + 2.3, z), C.steel)
+		part(V3(2.2, 0.3, 2.2), base * CF(x, h + 3.5, z), C.dark)
+	end
+	if rng:NextNumber() < 0.5 then
+		local x = rng:NextNumber(-w / 3, w / 3)
+		part(V3(2, 5, 2), base * CF(x, h + 3.6, d - 4), C.brick)
+	end
+	if not noShopfront then
+		part(V3(w - 6, 5, 0.4), base * CF(0, 3.6, -0.3), rgb(255, 205, 130), MAT.Neon, { Transparency = 0.15 })
+		part(V3(w - 5, 0.6, 0.6), base * CF(0, 6.3, -0.4), C.dark)
+		part(V3(4, 6.4, 0.5), base * CF(w / 2 - 6, 3.4, -0.45), C.wood)
+	end
+end
+
+local function awning(base, w, c1, c2)
+	local n = math.max(4, math.floor(w / 3))
+	local sw = w / n
+	for i = 1, n do
+		local x = -w / 2 + (i - 0.5) * sw
+		part(V3(sw, 0.5, 4.4), base * CF(x, 7.3, -2.2) * CFrame.Angles(math.rad(-16), 0, 0), i % 2 == 0 and c1 or c2)
+	end
+end
+
+local SHOPS = { "COFFEE", "RAMEN", "BOOKS", "ARCADE", "PIZZA", "TACOS", "VINYL", "TEA", "BAKERY", "SNEAKERS", "NOODLES", "BARBER" }
+local NEONS = { rgb(255, 120, 160), rgb(120, 220, 255), rgb(255, 190, 70), rgb(160, 130, 255), rgb(120, 255, 170) }
+local WALLS = {
+	rgb(154, 92, 80), rgb(214, 190, 150), rgb(92, 112, 140), rgb(120, 96, 128), rgb(176, 130, 88), rgb(88, 124, 116), rgb(196, 160, 140),
+}
+
+local function filler(pos, front, w, h)
+	local base = CFrame.lookAt(pos, pos + front)
+	local wall = WALLS[rng:NextInteger(1, #WALLS)]
+	building(base, w, 22, h, wall, wall:Lerp(C.dark, 0.6))
+	local neon = NEONS[rng:NextInteger(1, #NEONS)]
+	neonSign(base * CF(-w / 2 + 8, 9.2, -1.1), V3(11, 2.6, 0.7), SHOPS[rng:NextInteger(1, #SHOPS)], neon)
+	awning(base * CF(0, -0.4, 0), w - 8, neon:Lerp(C.dark, 0.35), C.cream)
+end
+
+------------------------------------------------------------------
+-- SOL, ROUTES, TROTTOIRS
+------------------------------------------------------------------
+part(V3(440, 2, 440), CF(0, -1, 0), C.sidewalk)
+-- carrelage trottoir (damier doux)
+for i = -9, 9 do
+	part(V3(440, 0.06, 2), CF(0, 0.03, i * 22), C.sidewalk:Lerp(WHITE, 0.08))
+end
+part(V3(396, 0.2, 24), CF(0, 0.1, 0), C.asphalt)
+part(V3(24, 0.2, 396), CF(0, 0.1, 0), C.asphalt)
+for _, s in ipairs({ -1, 1 }) do
+	part(V3(396, 0.4, 1.2), CF(0, 0.2, s * 12.6), C.curb)
+	for _, t in ipairs({ -1, 1 }) do
+		part(V3(1.2, 0.4, 180), CF(s * 12.6, 0.2, t * 108), C.curb)
+	end
+end
+-- lignes centrales et passages pietons
+for i = -9, 9 do
+	if math.abs(i * 10) > 16 then
+		part(V3(5, 0.05, 0.6), CF(i * 10, 0.23, 0), rgb(255, 214, 90))
+		part(V3(0.6, 0.05, 5), CF(0, 0.23, i * 10), rgb(255, 214, 90))
+	end
+end
+for _, s in ipairs({ -1, 1 }) do
+	for k = -5, 5 do
+		part(V3(1.4, 0.05, 6), CF(s * 30, 0.23, k * 2.1), WHITE)
+		part(V3(6, 0.05, 1.4), CF(k * 2.1, 0.23, s * 30), WHITE)
+	end
+end
+
+------------------------------------------------------------------
+-- ARENE (MOG BATTLE) au centre
+------------------------------------------------------------------
+part(V3(46, 1, 46), CF(0, 0.5, 0), rgb(44, 46, 60))
+for i = -3, 2 do
+	for j = -3, 2 do
+		part(V3(6, 0.2, 6), CF(i * 6 + 3, 1.1, j * 6 + 3), (i + j) % 2 == 0 and rgb(66, 70, 92) or rgb(52, 54, 74))
+	end
+end
+local ARENA_NEON = rgb(150, 90, 255)
+for _, s in ipairs({ -1, 1 }) do
+	part(V3(44, 0.2, 0.8), CF(0, 1.25, s * 21.6), ARENA_NEON, MAT.Neon)
+	part(V3(0.8, 0.2, 44), CF(s * 21.6, 1.25, 0), ARENA_NEON, MAT.Neon)
+end
+for i = 0, 3 do
+	local r = CFrame.Angles(0, math.rad(90 * i), 0)
+	for k = 1, 3 do
+		part(V3(18, k / 3, 2.2), r * CF(0, k / 6, 23 + (3 - k) * 2.2 + 1.1), rgb(70, 72, 90))
+	end
+end
+for _, sx in ipairs({ -1, 1 }) do
+	for _, sz in ipairs({ -1, 1 }) do
+		part(V3(3, 10, 3), CF(sx * 21, 6, sz * 21), C.dark)
+		local top = part(V3(3.6, 1, 3.6), CF(sx * 21, 11.5, sz * 21), ARENA_NEON, MAT.Neon)
+		local pl = Instance.new("PointLight")
+		pl.Range = 26
+		pl.Brightness = 1.2
+		pl.Color = ARENA_NEON
+		pl.Shadows = false
+		pl.Parent = top
+	end
+end
+part(V3(7, 0.15, 7), CF(-8, 1.28, 0), rgb(60, 140, 255), MAT.Neon, { Transparency = 0.3 })
+part(V3(7, 0.15, 7), CF(8, 1.28, 0), rgb(255, 70, 90), MAT.Neon, { Transparency = 0.3 })
+neonSign(CF(0, 24, 0), V3(26, 5, 0.8), "MOG BATTLE", rgb(190, 130, 255), true)
+for _, sx in ipairs({ -1, 1 }) do part(V3(1, 22, 1), CF(sx * 11, 12, 0), C.dark) end
+firefly(V3(0, 6, 0), 10)
+
+local arenaPad = part(V3(5, 0.4, 5), CF(0, 1.4, 14), ARENA_NEON, MAT.Neon, { Transparency = 0.35, CanCollide = false })
+local pp = Instance.new("ProximityPrompt")
+pp.ActionText, pp.ObjectText = "Ouvrir Mog Battle", "ARENE"
+pp.HoldDuration = 0.3
+pp.MaxActivationDistance = 12
+pp.RequiresLineOfSight = false
+pp:SetAttribute("Station", "arena")
+pp.Parent = arenaPad
+gui(arenaPad, Enum.NormalId.Top, "BATTLE", WHITE, 30)
+
+------------------------------------------------------------------
+-- STATIONS (4 boutiques)
+------------------------------------------------------------------
+local function pad(base, theme, key)
+	part(V3(40, 0.3, 18), base * CF(0, 0.15, -12), theme.floor)
+	for _, sx in ipairs({ -1, 1 }) do
+		part(V3(0.6, 0.2, 18), base * CF(sx * 19.7, 0.35, -12), theme.accent, MAT.Neon)
+	end
+	part(V3(40, 0.2, 0.6), base * CF(0, 0.35, -20.7), theme.accent, MAT.Neon)
+	local p = part(V3(7, 0.5, 7), base * CF(0, 0.55, -12), theme.accent, MAT.Neon, { Transparency = 0.3, CanCollide = false })
+	gui(p, Enum.NormalId.Top, theme.stat, WHITE, 30)
+	local pr = Instance.new("ProximityPrompt")
+	pr.ActionText, pr.ObjectText = "Lancer le mini-jeu", theme.title
+	pr.HoldDuration = 0.4
+	pr.MaxActivationDistance = 12
+	pr.RequiresLineOfSight = false
+	pr:SetAttribute("Station", key)
+	pr.Parent = p
+	local l = part(V3(1, 1, 1), base * CF(0, 9, -12), WHITE, MAT.Plastic, { Transparency = 1, CanCollide = false })
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(180, 50)
+	bb.AlwaysOnTop = false
+	bb.LightInfluence = 0
+	bb.MaxDistance = 90
+	bb.Parent = l
+	local t = Instance.new("TextLabel")
+	t.Size = UDim2.fromScale(1, 1)
+	t.BackgroundTransparency = 1
+	t.Text = theme.stat .. " STATION"
+	t.Font = Enum.Font.GothamBlack
+	t.TextScaled = true
+	t.TextColor3 = theme.accent
+	t.Parent = bb
+	local st = Instance.new("UIStroke")
+	st.Thickness = 2
+	st.Parent = t
+end
+
+local function shop(pos, front, theme, key)
+	local base = CFrame.lookAt(pos, pos + front)
+	building(base, 44, 24, 22, theme.wall, theme.roof, true)
+	-- vitrines + porte
+	for _, sx in ipairs({ -1, 1 }) do
+		part(V3(15, 6, 0.4), base * CF(sx * 12, 4, -0.3), rgb(255, 205, 130), MAT.Neon, { Transparency = 0.12 })
+		part(V3(16, 0.6, 0.7), base * CF(sx * 12, 7.2, -0.4), C.dark)
+		part(V3(16, 0.6, 0.7), base * CF(sx * 12, 0.9, -0.4), C.dark)
+	end
+	part(V3(5, 7.4, 0.6), base * CF(0, 3.9, -0.45), C.wood)
+	part(V3(5.8, 0.6, 0.9), base * CF(0, 7.9, -0.45), C.dark)
+	neonSign(base * CF(0, 17.5, -1.2), V3(30, 5, 0.8), theme.title, theme.accent)
+	neonSign(base * CF(0, 13.4, -1), V3(22, 2.2, 0.6), theme.sub, WHITE)
+	awning(base, 36, theme.accent:Lerp(C.dark, 0.3), C.cream)
+	pad(base, theme, key)
+	return base
+end
+
+local THEMES = {
+	gym = { wall = rgb(78, 88, 112), roof = rgb(36, 40, 56), accent = rgb(255, 128, 40), floor = rgb(68, 62, 62), title = "IRON GYM", sub = "TRAIN YOUR FRAME", stat = "FRAME" },
+	face = { wall = rgb(176, 104, 118), roof = rgb(72, 40, 56), accent = rgb(255, 96, 130), floor = rgb(206, 186, 176), title = "FACE LAB", sub = "STYLE YOUR LOOK", stat = "FACE" },
+	height = { wall = rgb(64, 122, 130), roof = rgb(30, 54, 62), accent = rgb(70, 190, 255), floor = rgb(176, 120, 76), title = "HEIGHT DOJO", sub = "STAND TALL BE PROUD", stat = "HEIGHT" },
+	bodyfat = { wall = rgb(100, 134, 86), roof = rgb(40, 58, 40), accent = rgb(100, 235, 140), floor = rgb(168, 82, 70), title = "CARDIO CLUB", sub = "MOVE. SWEAT. IMPROVE.", stat = "BODYFAT" },
+}
+
+-- GYM : racks, bancs, halteres, pneus
+do
+	local b = shop(V3(-58, 0, -34), V3(0, 0, 1), THEMES.gym, "frame")
+	for _, sx in ipairs({ -14, 14 }) do
+		for _, px in ipairs({ -2.2, 2.2 }) do
+			part(V3(0.7, 8, 0.7), b * CF(sx + px, 4, -16), C.steel)
+		end
+		part(V3(5.6, 0.5, 0.5), b * CF(sx, 6, -16), C.dark)
+		for _, p in ipairs({ -2.9, 2.9 }) do part(V3(0.6, 3, 3), b * CF(sx + p, 6, -16), rgb(30, 30, 36)) end
+		part(V3(2.2, 1.2, 5), b * CF(sx, 1.2, -13.5), C.dark)
+		part(V3(2.4, 0.3, 3.6), b * CF(sx, 1.95, -13.5), rgb(190, 40, 40))
+	end
+	part(V3(8, 3, 1.4), b * CF(-8, 1.5, -5.4), C.dark)
+	for i = 0, 3 do
+		part(V3(1.4, 0.8, 0.8), b * CF(-10.4 + i * 1.6, 3.4, -5.4), C.steel)
+		part(V3(1.4, 0.8, 0.8), b * CF(-10.4 + i * 1.6, 2.4, -5.4), C.steel)
+	end
+	for i = 0, 2 do part(V3(3, 1, 3), b * CF(14, 0.5 + i, -6), rgb(30, 30, 34)) end
+	for i = 0, 2 do part(V3(1.6, 1.6, 1.6), b * CF(-16 + i * 2, 0.8, -8), rgb(255, 128, 40)) end
+end
+
+-- FACE LAB : fauteuils, miroirs, poteau de barbier
+do
+	local b = shop(V3(58, 0, -34), V3(0, 0, 1), THEMES.face, "face")
+	for _, sx in ipairs({ -13, 13 }) do
+		part(V3(5, 1.2, 5), b * CF(sx, 0.6, -15), rgb(60, 36, 46))
+		part(V3(3, 1.4, 3), b * CF(sx, 1.9, -15), rgb(210, 70, 90))
+		part(V3(3, 2.8, 0.8), b * CF(sx, 3.8, -16.6), rgb(210, 70, 90))
+		part(V3(2.4, 0.6, 1), b * CF(sx, 1.2, -13), C.dark)
+		part(V3(9, 11, 0.6), b * CF(sx, 7, -20), C.dark)
+		part(V3(8, 10, 0.2), b * CF(sx, 7, -19.65), rgb(180, 210, 230), MAT.Glass, { Reflectance = 0.35 })
+		part(V3(9.2, 0.4, 0.8), b * CF(sx, 12.2, -19.6), rgb(255, 96, 130), MAT.Neon)
+	end
+	for i = 0, 5 do
+		part(V3(1.6, 1.2, 1.6), b * CF(-2.6, 0.6 + i * 1.2, -4.6), (i % 3 == 0) and C.red or ((i % 3 == 1) and WHITE or C.blue))
+	end
+	part(V3(2.2, 0.5, 2.2), b * CF(-2.6, 7.9, -4.6), C.steel)
+	for i = -1, 1 do
+		part(V3(1.4, 2.6, 1.4), b * CF(i * 3 + 17, 1.3, -6), rgb(255, 170, 190))
+		part(V3(0.8, 1, 0.8), b * CF(i * 3 + 17, 3.1, -6), WHITE)
+	end
+end
+
+-- HEIGHT DOJO : panier, mur toise, barre de traction
+do
+	local b = shop(V3(-58, 0, 34), V3(0, 0, -1), THEMES.height, "height")
+	part(V3(0.8, 15, 0.8), b * CF(-14, 7.5, -17), C.dark)
+	part(V3(6, 4, 0.5), b * CF(-14, 14, -15.6), WHITE)
+	part(V3(2.6, 2, 0.2), b * CF(-14, 13.6, -15.3), rgb(255, 80, 70), MAT.Neon)
+	for _, a in ipairs({ { -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 } }) do
+		part(V3(a[1] ~= 0 and 0.4 or 2.4, 0.4, a[2] ~= 0 and 0.4 or 2.4), b * CF(-14 + a[1] * 1.2, 11.6, -14.4 + a[2] * 1.2), rgb(255, 130, 40), MAT.Neon)
+	end
+	part(V3(22, 0.2, 16), b * CF(-6, 0.4, -12), rgb(190, 134, 84), MAT.Plastic)
+	part(V3(0.4, 0.1, 16), b * CF(-6, 0.52, -12), WHITE)
+	part(V3(2, 22, 0.8), b * CF(16, 11, -3), C.dark)
+	for i = 1, 8 do
+		part(V3(i % 2 == 0 and 3.4 or 2.4, 0.5, 0.9), b * CF(16, i * 2.5, -3.6), rgb(70, 190, 255), MAT.Neon)
+	end
+	part(V3(0.8, 9, 0.8), b * CF(6, 4.5, -8), C.steel)
+	part(V3(0.8, 9, 0.8), b * CF(12, 4.5, -8), C.steel)
+	part(V3(7.2, 0.6, 0.6), b * CF(9, 9, -8), C.steel)
+	for i = 1, 4 do part(V3(3, i * 0.9, 3), b * CF(-18 + i * 3.4, i * 0.45, -5), rgb(40, 100, 110)) end
+end
+
+-- CARDIO CLUB : tapis, cones, haies, fontaine
+do
+	local b = shop(V3(58, 0, 34), V3(0, 0, -1), THEMES.bodyfat, "bodyfat")
+	for i = -1, 1 do
+		part(V3(3, 0.8, 6), b * CF(i * 7 - 8, 0.9, -15), C.dark)
+		part(V3(2.4, 0.2, 5.2), b * CF(i * 7 - 8, 1.4, -15), rgb(60, 64, 72))
+		part(V3(0.6, 4, 0.6), b * CF(i * 7 - 8.9, 3, -17.6), C.steel)
+		part(V3(0.6, 4, 0.6), b * CF(i * 7 - 7.1, 3, -17.6), C.steel)
+		part(V3(2.6, 1.6, 0.8), b * CF(i * 7 - 8, 5, -17.6), rgb(80, 240, 150), MAT.Neon)
+	end
+	for i = 0, 3 do
+		part(V3(1.4, 1.8, 1.4), b * CF(8 + i * 3, 0.9, -7), rgb(255, 130, 40))
+		part(V3(0.9, 0.5, 0.9), b * CF(8 + i * 3, 2.05, -7), WHITE)
+	end
+	for i = 0, 2 do
+		part(V3(0.4, 3, 0.4), b * CF(10 + i * 4, 1.5, -12), WHITE)
+		part(V3(0.4, 3, 0.4), b * CF(12.4 + i * 4, 1.5, -12), WHITE)
+		part(V3(2.8, 0.4, 0.4), b * CF(11.2 + i * 4, 3, -12), rgb(100, 235, 140), MAT.Neon)
+	end
+	part(V3(2.4, 4, 2.4), b * CF(16, 2, -17), rgb(120, 190, 240), MAT.Glass, { Transparency = 0.3 })
+	part(V3(2.6, 1, 2.6), b * CF(16, 0.5, -17), C.dark)
+end
+
+------------------------------------------------------------------
+-- VILLE : rangees de batiments, gratte-ciel, parcs
+------------------------------------------------------------------
+for _, sx in ipairs({ -1, 1 }) do
+	for _, sz in ipairs({ -1, 1 }) do
+		for _, xi in ipairs({ 100, 130, 160, 190 }) do
+			filler(V3(sx * xi, 0, sz * 34), V3(0, 0, -sz), 26, rng:NextInteger(16, 32))
+		end
+		for _, zi in ipairs({ 80, 108, 136, 164, 192 }) do
+			filler(V3(sx * 34, 0, sz * zi), V3(-sx, 0, 0), 26, rng:NextInteger(16, 34))
+		end
+	end
+end
+
+for i = -4, 4 do
+	for _, e in ipairs({ { i * 46, -206 }, { i * 46, 206 }, { -206, i * 46 }, { 206, i * 46 } }) do
+		local pos = V3(e[1], 0, e[2])
+		local base = CFrame.lookAt(pos, V3(0, 0, 0))
+		local h = rng:NextInteger(44, 96)
+		local wall = WALLS[rng:NextInteger(1, #WALLS)]:Lerp(C.dark, 0.35)
+		part(V3(30, h, 26), base * CF(0, h / 2, 13), wall)
+		part(V3(31, 1.4, 27), base * CF(0, h + 0.7, 13), C.dark)
+		windows(base, 24, 4, h - 2, 4, math.floor(h / 14), -0.2, true)
+		if rng:NextNumber() < 0.4 then part(V3(1, 10, 1), base * CF(0, h + 6, 13), C.steel) end
+	end
+end
+
+local function park(cx, cz)
+	part(V3(66, 0.4, 66), CF(cx, 0.2, cz), C.grass)
+	for _, o in ipairs({ { -22, -22 }, { 22, -22 }, { -22, 22 }, { 22, 22 }, { 0, -26 }, { 0, 26 }, { -26, 0 }, { 26, 0 } }) do
+		tree(cx + o[1], cz + o[2])
+	end
+	part(V3(14, 1.4, 14), CF(cx, 0.9, cz), rgb(160, 156, 150))
+	part(V3(10, 1, 10), CF(cx, 1.9, cz), rgb(90, 170, 220), MAT.Glass, { Transparency = 0.2 })
+	part(V3(2, 4, 2), CF(cx, 3.6, cz), rgb(160, 156, 150))
+	part(V3(5, 0.6, 5), CF(cx, 5.8, cz), rgb(90, 170, 220), MAT.Glass, { Transparency = 0.3 })
+	for _, a in ipairs({ 0, 90, 180, 270 }) do
+		bench(CF(cx, 0.4, cz) * CFrame.Angles(0, math.rad(a), 0) * CF(0, 0, 14))
+	end
+	lamp(cx + 12, cz + 12, 0)
+	lamp(cx - 12, cz - 12, math.pi)
+	firefly(V3(cx, 6, cz), 8)
+end
+park(-130, -120)
+park(130, -120)
+park(-130, 120)
+park(130, 120)
+
+------------------------------------------------------------------
+-- DECOR DE RUE
+------------------------------------------------------------------
+for i = -5, 5 do
+	local x = i * 32
+	if math.abs(x) > 40 then
+		lamp(x, -14, 0)
+		lamp(x, 14, math.pi)
+		lamp(14, x, -math.pi / 2)
+		lamp(-14, x, math.pi / 2)
+	end
+end
+lamp(-30, -14, 0) lamp(30, -14, 0) lamp(-30, 14, math.pi) lamp(30, 14, math.pi)
+
+local carColors = { rgb(200, 60, 60), rgb(60, 110, 200), rgb(230, 190, 70), rgb(90, 90, 100), rgb(80, 160, 120), rgb(220, 220, 224) }
+for i = 1, 14 do
+	local x = rng:NextInteger(-170, 170)
+	if math.abs(x) > 26 then
+		local z = (i % 2 == 0) and 8.5 or -8.5
+		car(CF(x, 0.2, z) * CFrame.Angles(0, (z > 0) and 0 or math.pi, 0), carColors[rng:NextInteger(1, #carColors)])
+	end
+end
+for i = 1, 8 do
+	local z = rng:NextInteger(-170, 170)
+	if math.abs(z) > 30 then
+		local x = (i % 2 == 0) and 8.5 or -8.5
+		car(CF(x, 0.2, z) * CFrame.Angles(0, (x > 0) and math.pi / 2 or -math.pi / 2, 0), carColors[rng:NextInteger(1, #carColors)])
+	end
+end
+
+for i = -4, 4 do
+	if math.abs(i * 40) > 30 then
+		tree(i * 40 + 12, -28)
+		tree(i * 40 - 12, 28)
+		tree(28, i * 40 + 12)
+		tree(-28, i * 40 - 12)
+		bench(CF(i * 40, 0, -16.5))
+		bench(CF(i * 40 + 20, 0, 16.5) * CFrame.Angles(0, math.pi, 0))
+		hydrant(i * 40 + 6, -15)
+		bin(i * 40 - 6, 15)
+		bin(15, i * 40 + 6)
+	end
+end
+for i = 1, 20 do
+	local x, z = rng:NextInteger(-170, 170), (rng:NextNumber() < 0.5) and -21 or 21
+	if math.abs(x) > 30 then
+		crate(x, 0, z, 2.4)
+		crate(x + 2.6, 0, z, 2.4)
+	end
+end
+
+-- guirlandes lumineuses au-dessus de la rue
+for _, x in ipairs({ -145, -110, -75, 75, 110, 145 }) do
+	for _, s in ipairs({ -1, 1 }) do part(V3(0.8, 18, 0.8), CF(x, 9, s * 15.5), C.dark) end
+	for k = 0, 14 do
+		local t = k / 14
+		local z = -15.5 + 31 * t
+		local y = 18 - 3.6 * (1 - (2 * t - 1) ^ 2)
+		part(V3(0.9, 0.9, 0.9), CF(x, y, z), (k % 2 == 0) and rgb(255, 214, 140) or rgb(255, 170, 120), MAT.Neon)
+		part(V3(0.2, 0.2, 2.2), CF(x, y + 0.5, z + 1.1), C.dark)
+	end
+end
+
+-- panneau classement (portique nord) + portique d'accueil (sud)
+for _, sx in ipairs({ -1, 1 }) do
+	part(V3(1.6, 26, 1.6), CF(sx * 15, 13, -62), C.dark)
+	part(V3(1.6, 26, 1.6), CF(sx * 15, 13, 100), C.dark)
+end
+local board = part(V3(28, 13, 1), CF(0, 19, -62) * CFrame.Angles(0, math.pi, 0), rgb(22, 22, 28), MAT.Plastic, { Name = "Leaderboard", TopSurface = Enum.SurfaceType.Smooth })
+local bg = Instance.new("SurfaceGui")
+bg.Face = Enum.NormalId.Front
+bg.SizingMode = Enum.SurfaceGuiSizingMode.FixedSize
+bg.CanvasSize = Vector2.new(1120, 520)
+bg.LightInfluence = 0
+bg.Parent = board
+local bt = Instance.new("TextLabel")
+bt.Size = UDim2.fromScale(1, 0.18)
+bt.BackgroundTransparency = 1
+bt.Text = "TOP MOGGERS"
+bt.TextScaled = true
+bt.Font = Enum.Font.GothamBlack
+bt.TextColor3 = rgb(190, 130, 255)
+bt.Parent = bg
+local bl = Instance.new("TextLabel")
+bl.Name = "BoardText"
+bl.Size = UDim2.fromScale(0.92, 0.78)
+bl.Position = UDim2.fromScale(0.04, 0.2)
+bl.BackgroundTransparency = 1
+bl.Text = "..."
+bl.TextScaled = true
+bl.Font = Enum.Font.GothamBold
+bl.TextColor3 = WHITE
+bl.TextXAlignment = Enum.TextXAlignment.Left
+bl.TextYAlignment = Enum.TextYAlignment.Top
+bl.Parent = bg
+part(V3(29, 0.5, 1.4), CF(0, 25.8, -62), rgb(190, 130, 255), MAT.Neon)
+part(V3(29, 0.5, 1.4), CF(0, 12.2, -62), rgb(190, 130, 255), MAT.Neon)
+
+neonSign(CF(0, 22, 100) * CFrame.Angles(0, math.pi, 0), V3(30, 6, 1), "WELCOME TO MOG STREET", rgb(255, 190, 90), true)
+
+local spawn = Instance.new("SpawnLocation")
+spawn.Size = Vector3.new(14, 1, 14)
+spawn.CFrame = CFrame.new(0, 0.5, 118)
+spawn.Anchored = true
+spawn.Color = rgb(58, 60, 72)
+spawn.Material = MAT.Plastic
+spawn.TopSurface = Enum.SurfaceType.Studs
+spawn.Neutral = true
+spawn.Duration = 0
+spawn.Parent = map
+part(V3(15, 0.2, 0.6), CF(0, 1.05, 111), rgb(255, 190, 90), MAT.Neon)
+
+-- murs invisibles
+for _, w in ipairs({ { 0, -221, 440, 2 }, { 0, 221, 440, 2 }, { -221, 0, 2, 440 }, { 221, 0, 2, 440 } }) do
+	part(V3(w[3], 120, w[4]), CF(w[1], 60, w[2]), WHITE, MAT.Plastic, { Transparency = 1, CanQuery = false })
+end
+]]></ProtectedString></Properties></Item><Item class="Script" referent="RBX9"><Properties><string name="Name">MogGame</string><ProtectedString name="Source"><![CDATA[-- MogGame : stats, validation des mini-jeux, Mog Battle (joueur ou IA), classement, sauvegarde
+-- Script a placer dans ServerScriptService
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local DS = game:GetService("DataStoreService")
+local PPS = game:GetService("ProximityPromptService")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+
+local remotes = Instance.new("Folder")
+remotes.Name = "MogRemotes"
+remotes.Parent = RS
+local R = {}
+for _, n in ipairs({ "Toast", "OpenStation", "SubmitStation", "StationResult", "BattleRequest", "BattleInvite", "BattleInviteReply", "BattleState", "BattleMove", "TeleportTo" }) do
+	local r = Instance.new("RemoteEvent")
+	r.Name = n
+	r.Parent = remotes
+	R[n] = r
+end
+
+local store = DS:GetDataStore("MogData_v2")
+local START = { Face = 10, Frame = 10, Height = 15, Bodyfat = 85, Wins = 0 }
+local data, cooldown, sessions, invites = {}, {}, {}, {}
+local boardLabel
+
+local function toast(plr, text, kind)
+	R.Toast:FireClient(plr, text, kind or "info")
+end
+
+------------------------------------------------------------------
+-- STATS / CLASSEMENT
+------------------------------------------------------------------
+local function mogScore(d)
+	return (d.Face + d.Frame + d.Height + (100 - d.Bodyfat)) * 10
+end
+local function progress(d)
+	return math.clamp(((d.Face - 10) + (d.Frame - 10) + (d.Height - 15) + (85 - d.Bodyfat)) / 345, 0, 1)
+end
+
+local function pushAttrs(plr)
+	local d = data[plr]
+	if not d then return end
+	for _, k in ipairs({ "Face", "Frame", "Height", "Bodyfat", "Wins" }) do
+		plr:SetAttribute(k, d[k])
+	end
+	plr:SetAttribute("MogScore", mogScore(d))
+	local ls = plr:FindFirstChild("leaderstats")
+	if ls then
+		ls.MogScore.Value = mogScore(d)
+		ls.Wins.Value = d.Wins
+	end
+end
+
+local function updateRanks()
+	local list = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		if data[p] then table.insert(list, p) end
+	end
+	table.sort(list, function(a, b) return mogScore(data[a]) > mogScore(data[b]) end)
+	local lines = {}
+	for i, p in ipairs(list) do
+		p:SetAttribute("Rank", i)
+		if i <= 8 then
+			table.insert(lines, string.format("%d. %s  -  %d", i, p.DisplayName, mogScore(data[p])))
+		end
+	end
+	if boardLabel then boardLabel.Text = table.concat(lines, "\n") end
+end
+
+------------------------------------------------------------------
+-- APPARENCE (moche/gros/boutons -> beau/athletique)
+------------------------------------------------------------------
+local function applyLook(plr)
+	local d, char = data[plr], plr.Character
+	if not d or not char then return end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if not hum or hum.RigType ~= Enum.HumanoidRigType.R15 then return end
+	local f = d.Bodyfat / 100
+	local function set(name, val)
+		local v = hum:FindFirstChild(name)
+		if v then v.Value = val end
+	end
+	set("BodyHeightScale", 0.8 + 0.4 * d.Height / 100)
+	set("BodyWidthScale", 0.85 + 0.6 * f + 0.25 * d.Frame / 100)
+	set("BodyDepthScale", 0.85 + 0.6 * f + 0.15 * d.Frame / 100)
+	set("HeadScale", 1.3 - 0.3 * d.Face / 100)
+	local bc = char:FindFirstChildOfClass("BodyColors")
+	if bc then
+		local col = Color3.fromRGB(165, 175, 115):Lerp(Color3.fromRGB(226, 176, 138), progress(d))
+		bc.HeadColor3, bc.TorsoColor3 = col, col
+		bc.LeftArmColor3, bc.RightArmColor3 = col, col
+		bc.LeftLegColor3, bc.RightLegColor3 = col, col
+	end
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		local aura = hrp:FindFirstChild("MogAura")
+		if progress(d) >= 0.75 then
+			if not aura then
+				aura = Instance.new("ParticleEmitter")
+				aura.Name = "MogAura"
+				aura.Color = ColorSequence.new(Color3.fromRGB(150, 90, 255))
+				aura.Rate = 20
+				aura.Lifetime = NumberRange.new(1, 1.6)
+				aura.Speed = NumberRange.new(2, 4)
+				aura.Size = NumberSequence.new(0.5, 0)
+				aura.Transparency = NumberSequence.new(0.2, 1)
+				aura.LightEmission = 1
+				aura.SpreadAngle = Vector2.new(180, 180)
+				aura.Acceleration = Vector3.new(0, 4, 0)
+				aura.Parent = hrp
+			end
+		elseif aura then
+			aura:Destroy()
+		end
+	end
+	local token = (plr:GetAttribute("LookToken") or 0) + 1
+	plr:SetAttribute("LookToken", token)
+	task.delay(0.35, function()
+		if plr:GetAttribute("LookToken") ~= token or not char.Parent then return end
+		local head = char:FindFirstChild("Head")
+		if not head then return end
+		for _, c in ipairs(char:GetChildren()) do
+			if c.Name == "Pimple" then c:Destroy() end
+		end
+		local n = math.floor((100 - d.Face) / 100 * 16)
+		local rng = Random.new(plr.UserId)
+		for _ = 1, n do
+			local x = rng:NextNumber(-0.4, 0.4) * head.Size.X
+			local y = rng:NextNumber(-0.35, 0.4) * head.Size.Y
+			local p = Instance.new("Part")
+			p.Name = "Pimple"
+			p.Shape = Enum.PartType.Ball
+			p.Size = Vector3.one * (0.18 * head.Size.X / 1.2)
+			p.Color = Color3.fromRGB(190, 55, 55)
+			p.Material = Enum.Material.SmoothPlastic
+			p.CanCollide, p.CanQuery, p.CanTouch, p.Massless = false, false, false, true
+			p.CFrame = head.CFrame * CFrame.new(x, y, -head.Size.Z / 2)
+			local w = Instance.new("WeldConstraint")
+			w.Part0, w.Part1 = head, p
+			w.Parent = p
+			p.Parent = char
+		end
+	end)
+end
+
+local function refreshAll(plr)
+	pushAttrs(plr)
+	applyLook(plr)
+	updateRanks()
+end
+
+local function bump(plr, stat, n)
+	local d = data[plr]
+	if not d or n <= 0 then return 0 end
+	local before = d[stat]
+	if stat == "Bodyfat" then
+		d[stat] = math.max(5, d[stat] - n)
+	else
+		d[stat] = math.min(100, d[stat] + n)
+	end
+	return math.abs(d[stat] - before)
+end
+
+------------------------------------------------------------------
+-- STATIONS : le client joue le mini-jeu, le serveur valide
+------------------------------------------------------------------
+local STATION = {
+	face = { stat = "Face", minDur = 10 },
+	frame = { stat = "Frame", minDur = 12 },
+	height = { stat = "Height", minDur = 12 },
+	bodyfat = { stat = "Bodyfat", minDur = 12 },
+}
+
+PPS.PromptTriggered:Connect(function(prompt, plr)
+	local key = prompt:GetAttribute("Station")
+	if not key or not data[plr] or plr:GetAttribute("Busy") then return end
+	if key == "arena" then
+		R.BattleState:FireClient(plr, "menu", {})
+		return
+	end
+	if not STATION[key] then return end
+	if cooldown[plr] and os.clock() - cooldown[plr] < 1.5 then return end
+	local token = math.random(100000, 999999)
+	sessions[plr] = { station = key, t0 = os.clock(), token = token }
+	plr:SetAttribute("Busy", true)
+	R.OpenStation:FireClient(plr, key, token)
+	task.delay(120, function()
+		if sessions[plr] and sessions[plr].token == token then
+			sessions[plr] = nil
+			plr:SetAttribute("Busy", nil)
+		end
+	end)
+end)
+
+R.SubmitStation.OnServerEvent:Connect(function(plr, token, score)
+	local s = sessions[plr]
+	if not s or s.token ~= token then return end
+	sessions[plr] = nil
+	plr:SetAttribute("Busy", nil)
+	if type(score) ~= "number" or score ~= score or score < 0 then return end
+	local cfg = STATION[s.station]
+	if os.clock() - s.t0 < cfg.minDur then
+		toast(plr, "Trop rapide !", "bad")
+		return
+	end
+	score = math.clamp(score, 0, 1)
+	local gain = (score < 0.15) and 0 or math.clamp(math.floor(score * 4 + 0.5), 1, 4)
+	local applied = bump(plr, cfg.stat, gain)
+	cooldown[plr] = os.clock()
+	R.StationResult:FireClient(plr, cfg.stat, applied, data[plr][cfg.stat])
+	refreshAll(plr)
+end)
+
+------------------------------------------------------------------
+-- MOG BATTLE
+------------------------------------------------------------------
+local ARENA_Y = 1.3
+local PODIUM = { Vector3.new(-8, ARENA_Y + 3.2, 0), Vector3.new(8, ARENA_Y + 3.2, 0) }
+local EXIT_POS = { Vector3.new(-6, 4, 30), Vector3.new(6, 4, 30) }
+local MOVE_LIST = { "FLEX", "STARE", "TOWER" }
+local MOVES = {
+	FLEX = { beats = "STARE", power = function(d) return (d.Frame + (100 - d.Bodyfat)) / 2 end },
+	STARE = { beats = "TOWER", power = function(d) return d.Face end },
+	TOWER = { beats = "FLEX", power = function(d) return d.Height end },
+}
+local battles, battleCount = {}, 0
+
+local function makeAIData(d, diff)
+	local k = ({ 0.75, 1.0, 1.3 })[diff]
+	local base = mogScore(d) / 40
+	local function v() return math.clamp(math.floor(base * k + math.random(-8, 8)), 8, 99) end
+	return { Face = v(), Frame = v(), Height = v(), Bodyfat = 100 - v() }
+end
+
+local function aiPick(d)
+	local best, bv = "FLEX", -1
+	for _, m in ipairs(MOVE_LIST) do
+		local v = MOVES[m].power(d) * (0.6 + math.random() * 0.8)
+		if v > bv then best, bv = m, v end
+	end
+	return best
+end
+
+local function buildDummy(cf, name)
+	local m = Instance.new("Model")
+	m.Name = "MogBot"
+	local black, yellow = Color3.fromRGB(24, 24, 28), Color3.fromRGB(245, 205, 48)
+	local function p(size, off, color, nm)
+		local x = Instance.new("Part")
+		x.Name = nm or "Part"
+		x.Size = size
+		x.Anchored = true
+		x.CanCollide = false
+		x.Color = color
+		x.Material = Enum.Material.Plastic
+		x.TopSurface = Enum.SurfaceType.Studs
+		x.BottomSurface = Enum.SurfaceType.Smooth
+		x.CFrame = cf * CFrame.new(off)
+		x.Parent = m
+		return x
+	end
+	local root = p(Vector3.new(2, 2, 1), Vector3.new(0, 0, 0), black, "Root")
+	local head = p(Vector3.new(1.2, 1.2, 1.2), Vector3.new(0, 1.6, 0), yellow, "Head")
+	p(Vector3.new(0.22, 0.3, 0.1), Vector3.new(-0.3, 1.75, -0.62), black)
+	p(Vector3.new(0.22, 0.3, 0.1), Vector3.new(0.3, 1.75, -0.62), black)
+	p(Vector3.new(0.5, 0.12, 0.1), Vector3.new(0, 1.3, -0.62), black)
+	for i = -1, 1 do p(Vector3.new(0.4, 0.5, 0.4), Vector3.new(i * 0.4, 2.4, 0.1 * i), black) end
+	for _, s in ipairs({ -1, 1 }) do
+		p(Vector3.new(1, 1.4, 1), Vector3.new(s * 1.5, 0.3, 0), black)
+		p(Vector3.new(1, 0.6, 1), Vector3.new(s * 1.5, -0.7, 0), yellow)
+		p(Vector3.new(1, 2, 1), Vector3.new(s * 0.5, -2, 0), black)
+		p(Vector3.new(1, 0.5, 1.2), Vector3.new(s * 0.5, -2.75, -0.1), Color3.fromRGB(235, 235, 235))
+	end
+	m.PrimaryPart = root
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(160, 36)
+	bb.StudsOffset = Vector3.new(0, 2.4, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = head
+	local t = Instance.new("TextLabel")
+	t.Size = UDim2.fromScale(1, 1)
+	t.BackgroundTransparency = 1
+	t.Text = name
+	t.TextScaled = true
+	t.Font = Enum.Font.GothamBlack
+	t.TextColor3 = Color3.fromRGB(255, 90, 100)
+	t.Parent = bb
+	m.Parent = Workspace
+	return m
+end
+
+local function slide(model, target, t)
+	if not model or not model.Parent then return end
+	local start = model:GetPivot()
+	local n = math.max(1, math.floor(t * 30))
+	for i = 1, n do
+		if not model.Parent then return end
+		model:PivotTo(start:Lerp(target, i / n))
+		task.wait(1 / 30)
+	end
+end
+
+local function lunge(f, dist, t)
+	slide(f.model, f.home * CFrame.new(0, 0, -dist), t)
+	slide(f.model, f.home, t * 1.6)
+end
+
+local function flash(model, color)
+	if not model or not model.Parent then return end
+	local h = Instance.new("Highlight")
+	h.FillColor = color
+	h.FillTransparency = 0.35
+	h.OutlineColor = Color3.new(1, 1, 1)
+	h.Parent = model
+	Debris:AddItem(h, 0.55)
+end
+
+local function runBattle(f1, f2, isAI)
+	battleCount += 1
+	local b = { id = battleCount, f = { f1, f2 }, moves = {}, open = false }
+	battles[b.id] = b
+	local fighters = b.f
+	-- verifications
+	for _, f in ipairs(fighters) do
+		if f.plr then
+			local hrp = f.plr.Character and f.plr.Character:FindFirstChild("HumanoidRootPart")
+			if not hrp or f.plr:GetAttribute("Busy") then
+				battles[b.id] = nil
+				return
+			end
+		end
+	end
+	for i, f in ipairs(fighters) do
+		f.home = CFrame.lookAt(PODIUM[i], PODIUM[3 - i])
+		f.hp = 100
+		if f.plr then
+			f.plr:SetAttribute("Busy", true)
+			f.plr:SetAttribute("BattleId", b.id)
+			f.model = f.plr.Character
+			f.model:PivotTo(f.home)
+			f.model.HumanoidRootPart.Anchored = true
+		else
+			f.model = buildDummy(f.home, f.name)
+		end
+	end
+
+	local function pushAll(event, make)
+		for i, f in ipairs(fighters) do
+			if f.plr and f.plr.Parent then R.BattleState:FireClient(f.plr, event, make(i)) end
+		end
+	end
+
+	pushAll("start", function(i)
+		local me, opp = fighters[i], fighters[3 - i]
+		return {
+			id = b.id, ai = isAI,
+			me = { name = me.name, score = mogScore(me.d), hp = 100 },
+			opp = { name = opp.name, score = mogScore(opp.d), hp = 100 },
+		}
+	end)
+	task.wait(3.4)
+
+	for round = 1, 6 do
+		b.moves = {}
+		b.open = true
+		pushAll("round", function() return { round = round, time = 9 } end)
+		local t0 = os.clock()
+		while os.clock() - t0 < 9.5 do
+			local all = true
+			for i, f in ipairs(fighters) do
+				if f.plr and f.plr.Parent and not b.moves[i] then all = false end
+			end
+			if all then break end
+			task.wait(0.1)
+		end
+		b.open = false
+		for _, f in ipairs(fighters) do
+			if f.plr and not f.plr.Parent then f.left = true end
+		end
+		if f1.left or f2.left then break end
+		for i, f in ipairs(fighters) do
+			if not b.moves[i] then
+				if f.plr then
+					b.moves[i] = { move = MOVE_LIST[math.random(1, 3)], timing = 0.25 }
+				else
+					b.moves[i] = { move = aiPick(f.d), timing = math.clamp(0.3 + (f.diff or 2) * 0.17 + math.random() * 0.2, 0, 1) }
+				end
+			end
+		end
+		local m1, m2 = b.moves[1], b.moves[2]
+		local p1 = MOVES[m1.move].power(f1.d) * (0.65 + 0.7 * m1.timing)
+		local p2 = MOVES[m2.move].power(f2.d) * (0.65 + 0.7 * m2.timing)
+		local tri = 0
+		if MOVES[m1.move].beats == m2.move then
+			tri = 1
+			p1 *= 1.35
+			p2 *= 0.85
+		elseif MOVES[m2.move].beats == m1.move then
+			tri = 2
+			p2 *= 1.35
+			p1 *= 0.85
+		end
+		local diff = p1 - p2
+		local win = (math.abs(diff) < 2) and 0 or ((diff > 0) and 1 or 2)
+		local dmg = 0
+		if win ~= 0 then
+			dmg = math.clamp(math.floor(12 + math.abs(diff) * 0.6), 10, 38)
+			fighters[3 - win].hp = math.max(0, fighters[3 - win].hp - dmg)
+		else
+			f1.hp = math.max(0, f1.hp - 5)
+			f2.hp = math.max(0, f2.hp - 5)
+			dmg = 5
+		end
+		pushAll("result", function(i)
+			local me, opp = fighters[i], fighters[3 - i]
+			local mm, om = b.moves[i], b.moves[3 - i]
+			local mp, op = (i == 1) and p1 or p2, (i == 1) and p2 or p1
+			return {
+				round = round, damage = dmg,
+				me = { move = mm.move, timing = mm.timing, power = math.floor(mp), hp = me.hp },
+				opp = { move = om.move, timing = om.timing, power = math.floor(op), hp = opp.hp },
+				winner = (win == 0) and "draw" or ((win == i) and "me" or "opp"),
+				triangle = (tri == 0) and "none" or ((tri == i) and "me" or "opp"),
+			}
+		end)
+		task.wait(0.9)
+		if win == 0 then
+			task.spawn(lunge, f1, 2, 0.15)
+			task.spawn(lunge, f2, 2, 0.15)
+		else
+			flash(fighters[3 - win].model, Color3.fromRGB(255, 60, 70))
+			task.spawn(lunge, fighters[win], 3.5, 0.16)
+			task.spawn(lunge, fighters[3 - win], -4, 0.14)
+		end
+		task.wait(2.6)
+		if f1.hp <= 0 or f2.hp <= 0 then break end
+	end
+
+	-- vainqueur
+	local winIdx
+	if f1.left then
+		winIdx = 2
+	elseif f2.left then
+		winIdx = 1
+	elseif f1.hp ~= f2.hp then
+		winIdx = (f1.hp > f2.hp) and 1 or 2
+	else
+		winIdx = (mogScore(f1.d) >= mogScore(f2.d)) and 1 or 2
+	end
+	for i, f in ipairs(fighters) do
+		if f.plr and f.plr.Parent and data[f.plr] then
+			local won = (i == winIdx)
+			local reward = ""
+			if won then
+				data[f.plr].Wins += 1
+				local pick = ({ "Face", "Frame", "Height", "Bodyfat" })[math.random(1, 4)]
+				local got = bump(f.plr, pick, 2)
+				reward = "+" .. got .. " " .. string.upper(pick)
+			end
+			R.BattleState:FireClient(f.plr, "end", { result = won and "win" or "lose", reward = reward, ai = isAI })
+		end
+	end
+	task.wait(5)
+	for i, f in ipairs(fighters) do
+		if f.plr then
+			f.plr:SetAttribute("Busy", nil)
+			f.plr:SetAttribute("BattleId", nil)
+			local char = f.plr.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if hrp then
+				hrp.Anchored = false
+				char:PivotTo(CFrame.new(EXIT_POS[i]))
+			end
+			if data[f.plr] then refreshAll(f.plr) end
+		elseif f.model then
+			f.model:Destroy()
+		end
+	end
+	battles[b.id] = nil
+end
+
+R.BattleMove.OnServerEvent:Connect(function(plr, id, move, timing)
+	local b = battles[id]
+	if not b or not b.open or not MOVES[move] then return end
+	if type(timing) ~= "number" or timing ~= timing then return end
+	for i, f in ipairs(b.f) do
+		if f.plr == plr and not b.moves[i] then
+			b.moves[i] = { move = move, timing = math.clamp(timing, 0, 1) }
+		end
+	end
+end)
+
+local function nearestOpponent(plr)
+	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return nil end
+	local best, bd = nil, 150
+	for _, o in ipairs(Players:GetPlayers()) do
+		if o ~= plr and data[o] and not o:GetAttribute("Busy") and o.Character then
+			local r = o.Character:FindFirstChild("HumanoidRootPart")
+			if r then
+				local dd = (r.Position - root.Position).Magnitude
+				if dd < bd then best, bd = o, dd end
+			end
+		end
+	end
+	return best
+end
+
+local function newFighter(plr)
+	return { plr = plr, d = data[plr], name = plr.DisplayName }
+end
+
+R.BattleRequest.OnServerEvent:Connect(function(plr, mode, diff)
+	if not data[plr] or plr:GetAttribute("Busy") then return end
+	local key = "b" .. plr.UserId
+	if cooldown[key] and os.clock() - cooldown[key] < 3 then return end
+	cooldown[key] = os.clock()
+	if mode == "AI" then
+		diff = math.clamp(math.floor(tonumber(diff) or 2), 1, 3)
+		local f2 = { name = ({ "Bot ROOKIE", "Bot MOGLORD", "Bot SIGMA" })[diff], d = makeAIData(data[plr], diff), diff = diff }
+		task.spawn(runBattle, newFighter(plr), f2, true)
+	elseif mode == "PVP" then
+		local opp = nearestOpponent(plr)
+		if not opp then
+			toast(plr, "Aucun joueur libre a proximite...", "bad")
+			return
+		end
+		invites[opp] = { from = plr, t = os.clock() }
+		R.BattleInvite:FireClient(opp, plr.DisplayName, plr.UserId)
+		toast(plr, "Invitation envoyee a " .. opp.DisplayName, "info")
+	end
+end)
+
+R.BattleInviteReply.OnServerEvent:Connect(function(plr, fromId, accept)
+	local inv = invites[plr]
+	invites[plr] = nil
+	if not inv or inv.from.UserId ~= fromId or os.clock() - inv.t > 15 then return end
+	if not accept then
+		toast(inv.from, plr.DisplayName .. " a refuse le duel.", "bad")
+		return
+	end
+	if not inv.from.Parent or not data[plr] or not data[inv.from] then return end
+	if plr:GetAttribute("Busy") or inv.from:GetAttribute("Busy") then
+		toast(inv.from, "Duel impossible : un joueur est occupe.", "bad")
+		return
+	end
+	task.spawn(runBattle, newFighter(inv.from), newFighter(plr), false)
+end)
+
+------------------------------------------------------------------
+-- TELEPORTATION (bouton MAP)
+------------------------------------------------------------------
+local PLACES = {
+	arena = Vector3.new(0, 4, 28),
+	face = Vector3.new(58, 4, -13),
+	frame = Vector3.new(-58, 4, -13),
+	height = Vector3.new(-58, 4, 13),
+	bodyfat = Vector3.new(58, 4, 13),
+	spawn = Vector3.new(0, 4, 112),
+}
+R.TeleportTo.OnServerEvent:Connect(function(plr, key)
+	local pos = PLACES[key]
+	if not pos or plr:GetAttribute("Busy") or not data[plr] then return end
+	if cooldown["t" .. plr.UserId] and os.clock() - cooldown["t" .. plr.UserId] < 2 then return end
+	cooldown["t" .. plr.UserId] = os.clock()
+	local char = plr.Character
+	if char and char:FindFirstChild("HumanoidRootPart") then
+		char:PivotTo(CFrame.new(pos))
+	end
+end)
+
+------------------------------------------------------------------
+-- JOUEURS / SAUVEGARDE
+------------------------------------------------------------------
+local function save(plr)
+	local d = data[plr]
+	if not d then return end
+	pcall(function() store:SetAsync(tostring(plr.UserId), d) end)
+end
+
+local function onPlayer(plr)
+	local ls = Instance.new("Folder")
+	ls.Name = "leaderstats"
+	ls.Parent = plr
+	for _, n in ipairs({ "MogScore", "Wins" }) do
+		local v = Instance.new("IntValue")
+		v.Name = n
+		v.Parent = ls
+	end
+	local d = table.clone(START)
+	local ok, saved = pcall(function() return store:GetAsync(tostring(plr.UserId)) end)
+	if ok and type(saved) == "table" then
+		for k in pairs(d) do
+			if type(saved[k]) == "number" then d[k] = saved[k] end
+		end
+	end
+	data[plr] = d
+	pushAttrs(plr)
+	updateRanks()
+	local function onChar(char)
+		char:WaitForChild("Humanoid")
+		char:WaitForChild("BodyColors", 6)
+		task.wait(0.3)
+		applyLook(plr)
+		task.wait(1.5)
+		applyLook(plr)
+	end
+	plr.CharacterAdded:Connect(onChar)
+	if plr.Character then task.spawn(onChar, plr.Character) end
+end
+
+Players.PlayerAdded:Connect(onPlayer)
+for _, p in ipairs(Players:GetPlayers()) do task.spawn(onPlayer, p) end
+Players.PlayerRemoving:Connect(function(plr)
+	save(plr)
+	data[plr], cooldown[plr], sessions[plr], invites[plr] = nil, nil, nil, nil
+	updateRanks()
+end)
+game:BindToClose(function()
+	for plr in pairs(data) do save(plr) end
+end)
+task.spawn(function()
+	while true do
+		task.wait(90)
+		for plr in pairs(data) do save(plr) end
+	end
+end)
+
+task.spawn(function()
+	local map = Workspace:WaitForChild("MogMap", 60)
+	local lb = map and map:WaitForChild("Leaderboard", 60)
+	local sg = lb and lb:WaitForChild("SurfaceGui", 60)
+	boardLabel = sg and sg:WaitForChild("BoardText", 60)
+	updateRanks()
+end)
+]]></ProtectedString></Properties></Item></Item><Item class="StarterPlayer" referent="RBX12"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX11"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX4"><Properties><string name="Name">MogClient</string><ProtectedString name="Source"><![CDATA[-- MogClient : LocalScript (StarterPlayer > StarterPlayerScripts)
+-- 3 boutons a droite (STATS / BATTLE / MAP), menu Mog Stats (affichage uniquement),
+-- mini-jeux des stations, Mog Battle, notifications.
+-- Les ModuleScripts Studs, Minigames et BattleUI sont enfants de ce script.
+local Players = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local S = require(script:WaitForChild("Studs"))
+local Minigames = require(script:WaitForChild("Minigames"))
+local Battle = require(script:WaitForChild("BattleUI"))
+local C, make, tween = S.C, S.make, S.tween
+
+local player = Players.LocalPlayer
+local remotes = RS:WaitForChild("MogRemotes")
+local gui = make("ScreenGui", {
+	Name = "MogUI", ResetOnSpawn = false, IgnoreGuiInset = true, DisplayOrder = 5,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+}, player:WaitForChild("PlayerGui"))
+Battle.init(gui, remotes)
+
+local busy = false
+local side
+
+------------------------------------------------------------------
+-- NOTIFICATIONS
+------------------------------------------------------------------
+local toastFrame
+local function toast(text, kind)
+	if toastFrame then toastFrame:Destroy() end
+	local col = kind == "bad" and C.red or (kind == "good" and Color3.fromRGB(40, 150, 70) or C.brick)
+	local f = S.panel(gui, { Name = "Toast", Size = UDim2.fromScale(0.4, 0.07), Position = UDim2.fromScale(0.5, -0.12), AnchorPoint = Vector2.new(0.5, 0), color = col, cols = 20, rows = 2, z = 90 })
+	S.label(f, text, { Size = UDim2.fromScale(0.94, 0.62), Position = UDim2.fromScale(0.03, 0.19), z = 91 })
+	toastFrame = f
+	tween(f, 0.4, { Position = UDim2.fromScale(0.5, 0.03) }, Enum.EasingStyle.Back)
+	task.delay(3.2, function()
+		if f.Parent then
+			tween(f, 0.3, { Position = UDim2.fromScale(0.5, -0.12) })
+			task.delay(0.35, function() f:Destroy() end)
+		end
+	end)
+end
+remotes.Toast.OnClientEvent:Connect(toast)
+
+------------------------------------------------------------------
+-- MOG STATS (affichage uniquement, pas de bouton d'amelioration)
+------------------------------------------------------------------
+local ROWS = {
+	{ key = "Face", name = "Face", color = C.purple },
+	{ key = "Frame", name = "Frame", color = C.blue },
+	{ key = "Height", name = "Height", color = C.green },
+	{ key = "Bodyfat", name = "Bodyfat", color = C.orange, note = "moins = mieux" },
+}
+
+local stats = S.panel(gui, { Name = "StatsPanel", Size = UDim2.fromScale(0.74, 0.86), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 36, rows = 24, z = 15 })
+stats.Visible = false
+make("UIAspectRatioConstraint", { AspectRatio = 1.5 }, stats)
+local statsScale = make("UIScale", { Scale = 0.6 }, stats)
+
+for _, c in ipairs({ { 0, 0 }, { 0.945, 0 } }) do
+	S.panel(stats, { Size = UDim2.fromScale(0.055, 0.075), Position = UDim2.fromScale(c[1], c[2]), color = C.red, cols = 2, rows = 2, z = 16, stroke = 2 })
+end
+S.title(stats, "MOG STATS", UDim2.fromScale(0.5, 0.15), UDim2.fromScale(0.25, 0.025))
+local closeX = S.button(stats, "X", { Size = UDim2.fromScale(0.07, 0.1), Position = UDim2.fromScale(0.89, 0.03), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 20 })
+make("UIAspectRatioConstraint", { AspectRatio = 1 }, closeX)
+
+local function icon(key, box)
+	local function f(size, pos, col, r, z)
+		local x = make("Frame", { Size = size, Position = pos, BackgroundColor3 = col, BorderSizePixel = 0, ZIndex = z or 19 }, box)
+		if r then make("UICorner", { CornerRadius = UDim.new(r, 0) }, x) end
+		return x
+	end
+	if key == "Face" then
+		local h = f(UDim2.fromScale(0.62, 0.7), UDim2.fromScale(0.19, 0.15), Color3.fromRGB(250, 205, 40), 0.2)
+		make("Frame", { Size = UDim2.fromScale(0.14, 0.2), Position = UDim2.fromScale(0.22, 0.3), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 20 }, h)
+		make("Frame", { Size = UDim2.fromScale(0.14, 0.2), Position = UDim2.fromScale(0.64, 0.3), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 20 }, h)
+		f(UDim2.fromScale(0.4, 0.07), UDim2.fromScale(0.3, 0.7), C.black, 0.5, 20).Parent = h
+	elseif key == "Frame" then
+		f(UDim2.fromScale(0.74, 0.74), UDim2.fromScale(0.13, 0.13), Color3.fromRGB(120, 124, 136), 0.1)
+		f(UDim2.fromScale(0.42, 0.42), UDim2.fromScale(0.29, 0.29), C.black, 0.08, 20)
+	elseif key == "Height" then
+		f(UDim2.fromScale(0.26, 0.8), UDim2.fromScale(0.37, 0.1), Color3.fromRGB(90, 200, 40), 0.12)
+		for i = 1, 5 do f(UDim2.fromScale(i % 2 == 0 and 0.3 or 0.18, 0.04), UDim2.fromScale(0.37, 0.1 + i * 0.12), Color3.fromRGB(30, 80, 20), nil, 20) end
+	else
+		local t = f(UDim2.fromScale(0.62, 0.74), UDim2.fromScale(0.19, 0.13), Color3.fromRGB(190, 40, 36), 0.2)
+		make("Frame", { Size = UDim2.fromScale(0.06, 0.8), Position = UDim2.fromScale(0.47, 0.1), BackgroundColor3 = Color3.fromRGB(90, 16, 16), BorderSizePixel = 0, ZIndex = 20 }, t)
+		for i = 1, 3 do make("Frame", { Size = UDim2.fromScale(0.7, 0.05), Position = UDim2.fromScale(0.15, 0.2 + i * 0.17), BackgroundColor3 = Color3.fromRGB(90, 16, 16), BorderSizePixel = 0, ZIndex = 20 }, t) end
+	end
+end
+
+local segs, valueLbls, rowFrames = {}, {}, {}
+for i, r in ipairs(ROWS) do
+	local row = S.panel(stats, { Size = UDim2.fromScale(0.62, 0.155), Position = UDim2.fromScale(0.04, 0.215 + (i - 1) * 0.17), color = C.panel, cols = 22, rows = 3, light = 0.04, z = 16, stroke = 3 })
+	rowFrames[r.key] = row
+	local box = S.panel(row, { Size = UDim2.fromScale(0.15, 0.8), Position = UDim2.fromScale(0.02, 0.1), color = C.brick, z = 17, stroke = 3 })
+	icon(r.key, box)
+	S.label(row, r.name, { Size = UDim2.fromScale(0.3, 0.34), Position = UDim2.fromScale(0.2, 0.08), xAlign = Enum.TextXAlignment.Left, z = 18 })
+	if r.note then
+		S.label(row, "(" .. r.note .. ")", { Size = UDim2.fromScale(0.3, 0.2), Position = UDim2.fromScale(0.42, 0.14), color = Color3.fromRGB(150, 154, 168), font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, stroke = false, z = 18 })
+	end
+	local back = make("Frame", { BackgroundColor3 = C.black, Size = UDim2.fromScale(0.5, 0.3), Position = UDim2.fromScale(0.2, 0.55), BorderSizePixel = 0, ZIndex = 17 }, row)
+	make("UICorner", { CornerRadius = UDim.new(0.2, 0) }, back)
+	make("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0.012, 0), VerticalAlignment = Enum.VerticalAlignment.Center, HorizontalAlignment = Enum.HorizontalAlignment.Center }, back)
+	segs[r.key] = {}
+	for k = 1, 10 do
+		local sg = make("Frame", { Size = UDim2.fromScale(0.086, 0.7), BackgroundColor3 = Color3.fromRGB(40, 41, 50), BorderSizePixel = 0, ZIndex = 18, LayoutOrder = k }, back)
+		make("UICorner", { CornerRadius = UDim.new(0.2, 0) }, sg)
+		segs[r.key][k] = sg
+	end
+	local vb = S.panel(row, { Size = UDim2.fromScale(0.24, 0.5), Position = UDim2.fromScale(0.73, 0.25), color = C.brickDark, z = 17, stroke = 3 })
+	valueLbls[r.key] = S.label(vb, "0 / 100", { Size = UDim2.fromScale(0.86, 0.6), Position = UDim2.fromScale(0.07, 0.2), z = 18 })
+end
+
+-- colonne droite : avatar, score, rang
+S.panel(stats, { Size = UDim2.fromScale(0.27, 0.065), Position = UDim2.fromScale(0.69, 0.215), color = C.panel, z = 16, stroke = 3 })
+S.label(stats, "YOUR AVATAR", { Size = UDim2.fromScale(0.24, 0.04), Position = UDim2.fromScale(0.705, 0.228), font = Enum.Font.GothamBold, z = 18 })
+local avBox = S.panel(stats, { Size = UDim2.fromScale(0.27, 0.4), Position = UDim2.fromScale(0.69, 0.29), color = C.panel, cols = 12, rows = 10, light = 0.04, z = 16, stroke = 3 })
+local vp = make("ViewportFrame", {
+	BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 18, Ambient = Color3.fromRGB(170, 170, 185),
+	LightColor = Color3.fromRGB(255, 240, 220), LightDirection = Vector3.new(-0.4, -0.6, -0.6),
+}, avBox)
+local vpCam = make("Camera", { FieldOfView = 40 }, vp)
+vp.CurrentCamera = vpCam
+local scorePanel = S.panel(stats, { Size = UDim2.fromScale(0.27, 0.185), Position = UDim2.fromScale(0.69, 0.7), color = C.panel, z = 16, stroke = 3 })
+S.label(scorePanel, "MOG SCORE", { Size = UDim2.fromScale(0.8, 0.2), Position = UDim2.fromScale(0.1, 0.06), color = C.purple, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 18 })
+local scoreLbl = S.label(scorePanel, "0", { Size = UDim2.fromScale(0.8, 0.25), Position = UDim2.fromScale(0.1, 0.26), xAlign = Enum.TextXAlignment.Left, z = 18 })
+S.label(scorePanel, "RANK", { Size = UDim2.fromScale(0.5, 0.16), Position = UDim2.fromScale(0.1, 0.55), color = C.purple, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 18 })
+make("Frame", { Size = UDim2.fromScale(0.1, 0.14), Position = UDim2.fromScale(0.1, 0.74), BackgroundColor3 = C.yellow, BorderSizePixel = 0, ZIndex = 18 }, scorePanel)
+local rankLbl = S.label(scorePanel, "#1", { Size = UDim2.fromScale(0.6, 0.22), Position = UDim2.fromScale(0.24, 0.71), xAlign = Enum.TextXAlignment.Left, z = 18 })
+local banner = S.panel(stats, { Size = UDim2.fromScale(0.62, 0.07), Position = UDim2.fromScale(0.04, 0.9), color = C.panel, z = 16, stroke = 3 })
+make("Frame", { Size = UDim2.fromScale(0.03, 0.5), Position = UDim2.fromScale(0.03, 0.25), BackgroundColor3 = C.purple, BorderSizePixel = 0, ZIndex = 18 }, banner)
+S.label(banner, "BUILD YOUR MOG. TRAIN EVERYTHING.", { Size = UDim2.fromScale(0.86, 0.6), Position = UDim2.fromScale(0.1, 0.2), color = Color3.fromRGB(200, 202, 214), stroke = false, z = 18 })
+
+local statsOpen, avatarConn = false, nil
+
+local function refreshStats(animate)
+	for _, r in ipairs(ROWS) do
+		local v = player:GetAttribute(r.key) or 0
+		local filled = (r.key == "Bodyfat") and math.floor((100 - v) / 10 + 0.5) or math.floor(v / 10 + 0.5)
+		valueLbls[r.key].Text = v .. " / 100"
+		for k, sg in ipairs(segs[r.key]) do
+			local on = k <= filled
+			local target = on and r.color or Color3.fromRGB(40, 41, 50)
+			if animate then
+				task.delay((k - 1) * 0.045 + (table.find(ROWS, r) - 1) * 0.08, function()
+					if not stats.Visible then return end
+					tween(sg, 0.2, { BackgroundColor3 = target })
+					if on then S.pop(sg, 1.5) end
+				end)
+			else
+				sg.BackgroundColor3 = target
+			end
+		end
+	end
+	scoreLbl.Text = tostring(player:GetAttribute("MogScore") or 0)
+	rankLbl.Text = "#" .. tostring(player:GetAttribute("Rank") or 1)
+end
+
+local function buildAvatar()
+	for _, c in ipairs(vp:GetChildren()) do
+		if c:IsA("Model") then c:Destroy() end
+	end
+	local char = player.Character
+	if not char then return end
+	char.Archivable = true
+	local ok, clone = pcall(function() return char:Clone() end)
+	if not ok or not clone then return end
+	for _, d in ipairs(clone:GetDescendants()) do
+		if d:IsA("LuaSourceContainer") or d:IsA("Sound") or d:IsA("ParticleEmitter") or d:IsA("Highlight") then d:Destroy() end
+	end
+	local hum = clone:FindFirstChildOfClass("Humanoid")
+	if hum then hum.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None end
+	clone:PivotTo(CFrame.new(0, 0, 0))
+	clone.Parent = vp
+	local cf, size = clone:GetBoundingBox()
+	local center = cf.Position
+	local dist = (size.Y * 0.5) / math.tan(math.rad(20)) * 1.2 + size.Z
+	if avatarConn then avatarConn:Disconnect() end
+	avatarConn = RunService.RenderStepped:Connect(function()
+		local a = math.sin(os.clock() * 1.1) * 0.8
+		vpCam.CFrame = CFrame.lookAt(center + Vector3.new(math.sin(a), 0.12, -math.cos(a)) * dist, center)
+	end)
+end
+
+local function closeStats()
+	if not statsOpen then return end
+	statsOpen = false
+	if avatarConn then avatarConn:Disconnect() avatarConn = nil end
+	tween(statsScale, 0.25, { Scale = 0.5 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+	task.delay(0.26, function() if not statsOpen then stats.Visible = false end end)
+end
+
+local function openStats()
+	if statsOpen or busy or Battle.active then return end
+	statsOpen = true
+	stats.Visible = true
+	statsScale.Scale = 0.5
+	tween(statsScale, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+	for _, r in ipairs(ROWS) do
+		for _, sg in ipairs(segs[r.key]) do sg.BackgroundColor3 = Color3.fromRGB(40, 41, 50) end
+	end
+	refreshStats(true)
+	buildAvatar()
+	S.sfx("ping")
+end
+closeX.Activated:Connect(closeStats)
+
+for _, k in ipairs({ "Face", "Frame", "Height", "Bodyfat", "MogScore", "Rank" }) do
+	player:GetAttributeChangedSignal(k):Connect(function()
+		if statsOpen then
+			refreshStats(false)
+			if k == "Face" or k == "Frame" or k == "Height" or k == "Bodyfat" then S.pop(valueLbls[k], 1.4) end
+		end
+	end)
+end
+
+------------------------------------------------------------------
+-- MENU MAP (teleportation)
+------------------------------------------------------------------
+local mapPanel
+local function closeMap()
+	if mapPanel then
+		local m = mapPanel
+		mapPanel = nil
+		tween(m.UIScale, 0.2, { Scale = 0.3 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		task.delay(0.22, function() m:Destroy() end)
+	end
+end
+
+local function openMap()
+	if mapPanel or busy or Battle.active then return end
+	mapPanel = S.panel(gui, { Name = "MapPanel", Size = UDim2.fromScale(0.44, 0.62), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 18, rows = 16, z = 20 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1.1 }, mapPanel)
+	local sc = make("UIScale", { Scale = 0.4 }, mapPanel)
+	tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+	S.title(mapPanel, "MOG MAP", UDim2.fromScale(0.6, 0.15), UDim2.fromScale(0.04, 0.03), C.blue)
+	local x = S.button(mapPanel, "X", { Size = UDim2.fromScale(0.1, 0.1), Position = UDim2.fromScale(0.86, 0.03), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 22 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1 }, x)
+	x.Activated:Connect(closeMap)
+	local list = {
+		{ "FACE LAB", "face", C.pink }, { "IRON GYM", "frame", C.orange },
+		{ "HEIGHT DOJO", "height", C.blue }, { "CARDIO CLUB", "bodyfat", Color3.fromRGB(60, 170, 90) },
+		{ "ARENE", "arena", Color3.fromRGB(120, 60, 210) }, { "SPAWN", "spawn", C.brickLight },
+	}
+	for i, it in ipairs(list) do
+		local col, row = (i - 1) % 2, math.floor((i - 1) / 2)
+		local b = S.button(mapPanel, it[1], { Size = UDim2.fromScale(0.43, 0.17), Position = UDim2.fromScale(0.05 + col * 0.47, 0.25 + row * 0.23), color = it[3], cols = 9, rows = 3, z = 22 })
+		b.Activated:Connect(function()
+			remotes.TeleportTo:FireServer(it[2])
+			closeMap()
+		end)
+	end
+end
+
+------------------------------------------------------------------
+-- 3 BOUTONS A DROITE
+------------------------------------------------------------------
+side = make("Frame", { Name = "SideButtons", BackgroundTransparency = 1, Size = UDim2.fromOffset(176, 270), AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), ZIndex = 8 }, gui)
+make("UIListLayout", { Padding = UDim.new(0, 14), HorizontalAlignment = Enum.HorizontalAlignment.Right, VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }, side)
+local sideScale = make("UIScale", {}, side)
+local function fitSide()
+	local cam = Workspace.CurrentCamera
+	if cam then sideScale.Scale = math.clamp(cam.ViewportSize.Y / 720, 0.65, 1.3) end
+end
+fitSide()
+if Workspace.CurrentCamera then Workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitSide) end
+
+local btnStats = S.button(side, "STATS", { Size = UDim2.fromOffset(176, 78), color = C.red, cols = 10, rows = 4, z = 9, LayoutOrder = 1 })
+local btnBattle = S.button(side, "BATTLE", { Size = UDim2.fromOffset(176, 78), color = Color3.fromRGB(120, 56, 205), cols = 10, rows = 4, z = 9, LayoutOrder = 2 })
+local btnMap = S.button(side, "MAP", { Size = UDim2.fromOffset(176, 78), color = Color3.fromRGB(36, 96, 180), cols = 10, rows = 4, z = 9, LayoutOrder = 3 })
+
+local function setSideVisible()
+	side.Visible = not busy and not Battle.active
+end
+
+btnStats.Activated:Connect(function()
+	if statsOpen then closeStats() else closeMap() openStats() end
+end)
+btnBattle.Activated:Connect(function()
+	if busy or Battle.active then return end
+	closeStats()
+	closeMap()
+	Battle.openMenu()
+end)
+btnMap.Activated:Connect(function()
+	if mapPanel then closeMap() else closeStats() openMap() end
+end)
+Battle.onActive = function(on)
+	if on then closeStats() closeMap() end
+	setSideVisible()
+end
+
+UIS.InputBegan:Connect(function(i, gp)
+	if gp or busy or Battle.active then return end
+	if i.KeyCode == Enum.KeyCode.M then
+		if statsOpen then closeStats() else closeMap() openStats() end
+	elseif i.KeyCode == Enum.KeyCode.B then
+		closeStats()
+		closeMap()
+		Battle.openMenu()
+	elseif i.KeyCode == Enum.KeyCode.T then
+		if mapPanel then closeMap() else closeStats() openMap() end
+	end
+end)
+
+------------------------------------------------------------------
+-- STATIONS / MINI-JEUX
+------------------------------------------------------------------
+local frozen
+local function freeze(on)
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	if on then
+		frozen = { ws = hum.WalkSpeed, jp = hum.JumpPower, jh = hum.JumpHeight }
+		hum.WalkSpeed, hum.JumpPower, hum.JumpHeight = 0, 0, 0
+	elseif frozen then
+		hum.WalkSpeed, hum.JumpPower, hum.JumpHeight = frozen.ws, frozen.jp, frozen.jh
+		frozen = nil
+	end
+end
+
+remotes.OpenStation.OnClientEvent:Connect(function(station, token)
+	if busy then return end
+	busy = true
+	closeStats()
+	closeMap()
+	setSideVisible()
+	freeze(true)
+	Minigames.run(gui, station, function(score)
+		remotes.SubmitStation:FireServer(token, score)
+	end, function()
+		freeze(false)
+		busy = false
+		setSideVisible()
+	end)
+end)
+
+remotes.StationResult.OnClientEvent:Connect(function(stat, gain, value)
+	Minigames.showGain(stat, gain, value)
+end)
+
+toast("Bienvenue a MOG STREET ! Utilise les 3 boutons a droite.", "info")
+]]></ProtectedString></Properties><Item class="ModuleScript" referent="RBX1"><Properties><string name="Name">Studs</string><ProtectedString name="Source"><![CDATA[-- Studs : ModuleScript (enfant de MogClient) - UI style briques/studs + effets
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+
+local M = {}
+local C = {
+	brick = Color3.fromRGB(58, 60, 68), brickDark = Color3.fromRGB(30, 31, 37), brickLight = Color3.fromRGB(88, 91, 102),
+	red = Color3.fromRGB(176, 32, 30), redDark = Color3.fromRGB(110, 18, 18),
+	purple = Color3.fromRGB(170, 70, 255), blue = Color3.fromRGB(40, 150, 255), green = Color3.fromRGB(110, 220, 50),
+	orange = Color3.fromRGB(255, 110, 30), yellow = Color3.fromRGB(255, 214, 70), pink = Color3.fromRGB(255, 96, 130),
+	white = Color3.fromRGB(236, 238, 244), black = Color3.fromRGB(14, 14, 18), panel = Color3.fromRGB(22, 23, 29),
+}
+M.C = C
+
+local function make(class, props, parent)
+	local i = Instance.new(class)
+	for k, v in pairs(props) do i[k] = v end
+	i.Parent = parent
+	return i
+end
+M.make = make
+
+function M.tween(obj, t, props, style, dir)
+	local tw = TweenService:Create(obj, TweenInfo.new(t, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props)
+	tw:Play()
+	return tw
+end
+local tween = M.tween
+
+function M.sfx(name)
+	local ids = { ping = "rbxasset://sounds/electronicpingshort.wav", hit = "rbxasset://sounds/swordslash.wav", ko = "rbxasset://sounds/uuhhh.mp3" }
+	local gui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	if not gui or not ids[name] then return end
+	local s = make("Sound", { SoundId = ids[name], Volume = 0.5 }, gui)
+	s:Play()
+	Debris:AddItem(s, 3)
+end
+
+-- grille de studs ronds qui remplit `parent`
+function M.studs(parent, cols, rows, color, gap)
+	gap = gap or 3
+	local holder = make("Frame", { Name = "Studs", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Active = false, ZIndex = 1 }, parent)
+	make("UIGridLayout", {
+		CellSize = UDim2.new(1 / cols, -gap, 1 / rows, -gap), CellPadding = UDim2.fromOffset(gap, gap),
+		SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Enum.VerticalAlignment.Center,
+	}, holder)
+	for i = 1, cols * rows do
+		local s = make("Frame", { BackgroundColor3 = color, BorderSizePixel = 0, LayoutOrder = i, Active = false }, holder)
+		make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, s)
+	end
+	return holder
+end
+
+function M.panel(parent, p)
+	local col = p.color or C.brick
+	local f = make("Frame", {
+		Name = p.Name or "Panel", Size = p.Size, Position = p.Position or UDim2.new(), AnchorPoint = p.AnchorPoint or Vector2.zero,
+		BackgroundColor3 = col, BorderSizePixel = 0, ZIndex = p.z or 1,
+	}, parent)
+	make("UICorner", { CornerRadius = UDim.new(0, p.radius or 8) }, f)
+	make("UIStroke", { Color = p.strokeColor or C.brickDark, Thickness = p.stroke or 4 }, f)
+	if p.cols then M.studs(f, p.cols, p.rows, col:Lerp(Color3.new(1, 1, 1), p.light or 0.09), p.gap or 3) end
+	return f
+end
+
+function M.label(parent, text, p)
+	p = p or {}
+	local l = make("TextLabel", {
+		Name = p.Name or "Label", BackgroundTransparency = 1, Text = text, Size = p.Size or UDim2.fromScale(1, 1),
+		Position = p.Position or UDim2.new(), AnchorPoint = p.AnchorPoint or Vector2.zero, TextColor3 = p.color or C.white,
+		TextScaled = true, Font = p.font or Enum.Font.GothamBlack, TextXAlignment = p.xAlign or Enum.TextXAlignment.Center,
+		ZIndex = p.z or 2,
+	}, parent)
+	if p.stroke ~= false then
+		make("UIStroke", { Color = p.strokeColor or Color3.new(0, 0, 0), Thickness = p.strokeThickness or 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual }, l)
+	end
+	return l
+end
+
+-- titre "extrude" style lettres en briques
+function M.title(parent, text, size, pos, color)
+	local holder = make("Frame", { BackgroundTransparency = 1, Size = size, Position = pos, ZIndex = 3 }, parent)
+	M.label(holder, text, { Position = UDim2.fromOffset(4, 6), color = Color3.fromRGB(16, 16, 20), stroke = false, z = 3 })
+	M.label(holder, text, { color = color or Color3.fromRGB(150, 152, 162), strokeColor = Color3.fromRGB(24, 24, 28), strokeThickness = 3, z = 4 })
+	return holder
+end
+
+function M.button(parent, text, p)
+	local col = p.color or C.red
+	local b = make("TextButton", {
+		Name = p.Name or text, Text = "", AutoButtonColor = false, BackgroundColor3 = col, BorderSizePixel = 0,
+		Size = p.Size, Position = p.Position or UDim2.new(), AnchorPoint = p.AnchorPoint or Vector2.zero, ZIndex = p.z or 2,
+		LayoutOrder = p.LayoutOrder or 0,
+	}, parent)
+	make("UICorner", { CornerRadius = UDim.new(0, 7) }, b)
+	make("UIStroke", { Color = col:Lerp(Color3.new(0, 0, 0), 0.65), Thickness = 3 }, b)
+	M.studs(b, p.cols or 9, p.rows or 3, col:Lerp(Color3.new(1, 1, 1), 0.2), 2)
+	M.label(b, text, { Size = UDim2.fromScale(p.textW or 0.86, p.textH or 0.52), Position = UDim2.fromScale((1 - (p.textW or 0.86)) / 2, (1 - (p.textH or 0.52)) / 2), z = 3 })
+	local sc = make("UIScale", {}, b)
+	b.MouseEnter:Connect(function() tween(sc, 0.12, { Scale = 1.06 }) end)
+	b.MouseLeave:Connect(function() tween(sc, 0.12, { Scale = 1 }) end)
+	b.MouseButton1Down:Connect(function() tween(sc, 0.08, { Scale = 0.93 }) end)
+	b.MouseButton1Up:Connect(function() tween(sc, 0.12, { Scale = 1.06 }, Enum.EasingStyle.Back) end)
+	return b
+end
+
+------------------------------------------------------------------
+-- EFFETS
+------------------------------------------------------------------
+function M.pop(obj, s)
+	local sc = obj:FindFirstChildOfClass("UIScale") or make("UIScale", {}, obj)
+	sc.Scale = s or 1.35
+	tween(sc, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+end
+
+function M.burst(parent, pos, color, count, dist)
+	for _ = 1, count or 12 do
+		local s = make("Frame", {
+			Size = UDim2.fromOffset(math.random(6, 13), math.random(6, 13)), AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = pos, BackgroundColor3 = color, BorderSizePixel = 0, ZIndex = 50,
+		}, parent)
+		make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, s)
+		local a = math.random() * math.pi * 2
+		local d = (dist or 90) * (0.4 + math.random() * 0.8)
+		tween(s, 0.5 + math.random() * 0.3, { Position = pos + UDim2.fromOffset(math.cos(a) * d, math.sin(a) * d), BackgroundTransparency = 1, Size = UDim2.fromOffset(3, 3) })
+		Debris:AddItem(s, 1.2)
+	end
+end
+
+function M.shake(obj, mag, dur)
+	local id = (obj:GetAttribute("_sh") or 0) + 1
+	obj:SetAttribute("_sh", id)
+	if obj:GetAttribute("_base") == nil then obj:SetAttribute("_base", obj.Position) end
+	local base = obj:GetAttribute("_base")
+	task.spawn(function()
+		local t0 = os.clock()
+		while os.clock() - t0 < dur and obj.Parent do
+			if obj:GetAttribute("_sh") ~= id then return end
+			local k = 1 - (os.clock() - t0) / dur
+			obj.Position = base + UDim2.fromOffset(math.random(-mag, mag) * k, math.random(-mag, mag) * k)
+			task.wait()
+		end
+		if obj.Parent and obj:GetAttribute("_sh") == id then
+			obj.Position = base
+			obj:SetAttribute("_base", nil)
+		end
+	end)
+end
+
+function M.flash(gui, color, alpha, dur)
+	local f = make("Frame", { BackgroundColor3 = color, BackgroundTransparency = alpha or 0.5, Size = UDim2.fromScale(1, 1), ZIndex = 80, Active = false }, gui)
+	tween(f, dur or 0.4, { BackgroundTransparency = 1 })
+	Debris:AddItem(f, (dur or 0.4) + 0.1)
+end
+
+function M.stamp(parent, text, color, size, pos)
+	local l = M.label(parent, text, {
+		Size = size or UDim2.fromScale(0.5, 0.4), Position = pos or UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5),
+		color = color, z = 60, strokeThickness = 4,
+	})
+	local sc = make("UIScale", { Scale = 3 }, l)
+	l.Rotation = -10
+	l.TextTransparency = 1
+	tween(sc, 0.35, { Scale = 1 }, Enum.EasingStyle.Back)
+	tween(l, 0.2, { TextTransparency = 0 })
+	return l
+end
+
+function M.confetti(parent, n)
+	local cols = { C.yellow, C.pink, C.blue, C.green, C.purple, C.orange }
+	for i = 1, n or 40 do
+		task.delay(math.random() * 0.8, function()
+			if not parent.Parent then return end
+			local s = make("Frame", {
+				Size = UDim2.fromOffset(math.random(8, 14), math.random(8, 14)), AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(math.random(), -0.05), BackgroundColor3 = cols[math.random(1, #cols)], BorderSizePixel = 0, ZIndex = 70, Rotation = math.random(0, 90),
+			}, parent)
+			make("UICorner", { CornerRadius = UDim.new(0.3, 0) }, s)
+			tween(s, 1.6 + math.random(), { Position = UDim2.fromScale(math.random(), 1.1), Rotation = math.random(-300, 300) }, Enum.EasingStyle.Sine)
+			Debris:AddItem(s, 3)
+		end)
+	end
+end
+
+return M
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX2"><Properties><string name="Name">Minigames</string><ProtectedString name="Source"><![CDATA[-- Minigames : ModuleScript (enfant de MogClient) - un mini-jeu par station
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local S = require(script.Parent.Studs)
+local C, make, tween = S.C, S.make, S.tween
+
+local M = {}
+M.current = nil
+local GAMES = {}
+
+local INFO = {
+	face = { title = "FACE LAB", sub = "TIMING - clique dans la zone verte", color = C.pink, hint = "CLIC / TAP / ESPACE pour valider", duration = 28 },
+	frame = { title = "IRON GYM", sub = "SPAM pour soulever la barre", color = C.orange, hint = "TAPE le plus vite possible ! (CLIC / ESPACE)", duration = 20 },
+	height = { title = "HEIGHT DOJO", sub = "MAINTIENS la barre dans la zone", color = C.blue, hint = "MAINTIENS CLIC / TAP / ESPACE pour monter", duration = 24 },
+	bodyfat = { title = "CARDIO CLUB", sub = "ESQUIVE les haies - prends l'eau", color = C.green, hint = "TAP gauche / droite  -  A / D  -  fleches", duration = 22 },
+}
+
+local function grade(score)
+	if score >= 0.9 then return "S", C.yellow end
+	if score >= 0.7 then return "A", C.green end
+	if score >= 0.45 then return "B", C.blue end
+	return "C", Color3.fromRGB(190, 190, 205)
+end
+
+local function newShell(gui, info, onSubmit, onClose)
+	local sh = { conns = {}, alive = true, info = info }
+	local dim = make("Frame", { Name = "MiniGame", BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 10, Active = true }, gui)
+	tween(dim, 0.3, { BackgroundTransparency = 0.4 })
+	local panel = S.panel(dim, { Size = UDim2.fromScale(0.66, 0.8), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 30, rows = 18, z = 11 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1.55 }, panel)
+	local sc = make("UIScale", { Scale = 0.5 }, panel)
+	tween(sc, 0.45, { Scale = 1 }, Enum.EasingStyle.Back)
+	S.title(panel, info.title, UDim2.fromScale(0.56, 0.12), UDim2.fromScale(0.04, 0.02), info.color)
+	S.label(panel, info.sub, { Size = UDim2.fromScale(0.5, 0.045), Position = UDim2.fromScale(0.05, 0.145), color = C.white, font = Enum.Font.GothamBold, xAlign = Enum.TextXAlignment.Left, z = 4 })
+	local back = make("Frame", { BackgroundColor3 = C.panel, Size = UDim2.fromScale(0.9, 0.035), Position = UDim2.fromScale(0.05, 0.195), BorderSizePixel = 0, ZIndex = 4 }, panel)
+	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, back)
+	local fill = make("Frame", { BackgroundColor3 = info.color, Size = UDim2.fromScale(1, 1), BorderSizePixel = 0, ZIndex = 5 }, back)
+	make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, fill)
+	function sh.setTimer(frac)
+		frac = math.clamp(frac, 0, 1)
+		fill.Size = UDim2.fromScale(frac, 1)
+		fill.BackgroundColor3 = info.color:Lerp(C.red, 1 - frac)
+	end
+	local arena = make("Frame", { Name = "Arena", BackgroundColor3 = C.panel, Size = UDim2.fromScale(0.92, 0.64), Position = UDim2.fromScale(0.04, 0.25), BorderSizePixel = 0, ZIndex = 4, ClipsDescendants = true }, panel)
+	make("UICorner", { CornerRadius = UDim.new(0, 8) }, arena)
+	make("UIStroke", { Color = C.brickDark, Thickness = 4 }, arena)
+	S.studs(arena, 28, 12, Color3.fromRGB(30, 31, 38), 4).ZIndex = 4
+	S.label(panel, info.hint, { Size = UDim2.fromScale(0.9, 0.05), Position = UDim2.fromScale(0.05, 0.915), color = Color3.fromRGB(190, 192, 205), font = Enum.Font.GothamBold, stroke = false, z = 4 })
+	local x = S.button(panel, "X", { Size = UDim2.fromScale(0.07, 0.1), Position = UDim2.fromScale(0.91, 0.02), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 12 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1 }, x)
+	sh.dim, sh.panel, sh.arena = dim, panel, arena
+	sh.started = os.clock()
+
+	local function close()
+		tween(dim, 0.3, { BackgroundTransparency = 1 })
+		tween(sc, 0.3, { Scale = 0.2 }, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+		task.delay(0.32, function()
+			dim:Destroy()
+			if M.current == sh then M.current = nil end
+			onClose()
+		end)
+	end
+	x.Activated:Connect(function()
+		if not sh.alive then return end
+		sh.alive = false
+		for _, c in ipairs(sh.conns) do c:Disconnect() end
+		onSubmit(-1)
+		close()
+	end)
+
+	function sh.finish(score)
+		if not sh.alive then return end
+		sh.alive = false
+		for _, c in ipairs(sh.conns) do c:Disconnect() end
+		score = math.clamp(score, 0, 1)
+		local g, col = grade(score)
+		local ov = make("Frame", { BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 30, Active = true }, panel)
+		make("UICorner", { CornerRadius = UDim.new(0, 8) }, ov)
+		tween(ov, 0.3, { BackgroundTransparency = 0.3 })
+		local st = S.stamp(panel, g, col, UDim2.fromScale(0.34, 0.5), UDim2.fromScale(0.5, 0.42))
+		st.ZIndex = 40
+		S.label(panel, "SCORE " .. math.floor(score * 100) .. "%", { Size = UDim2.fromScale(0.5, 0.08), Position = UDim2.fromScale(0.25, 0.68), color = C.white, z = 40 })
+		sh.gain = S.label(panel, "...", { Size = UDim2.fromScale(0.7, 0.1), Position = UDim2.fromScale(0.15, 0.78), color = col, z = 40 })
+		S.sfx("ping")
+		S.burst(panel, UDim2.fromScale(0.5, 0.42), col, 26, 170)
+		if score >= 0.9 then S.confetti(panel, 50) end
+		S.shake(panel, 8, 0.4)
+		onSubmit(score)
+		task.delay(3.6, close)
+	end
+	M.current = sh
+	return sh
+end
+
+local function tapArea(sh, z)
+	return make("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = z or 20 }, sh.arena)
+end
+
+local function key(sh, fn, ended)
+	table.insert(sh.conns, UIS.InputBegan:Connect(function(i, gp)
+		if i.UserInputType == Enum.UserInputType.Keyboard then fn(i.KeyCode, true) end
+	end))
+	table.insert(sh.conns, UIS.InputEnded:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.Keyboard then fn(i.KeyCode, false) end
+	end))
+end
+
+local function corner(o, r) make("UICorner", { CornerRadius = UDim.new(r or 0.15, 0) }, o) end
+
+------------------------------------------------------------------
+-- FACE : timing + boutons qui disparaissent
+------------------------------------------------------------------
+GAMES.face = function(sh)
+	local A = sh.arena
+	local ROUNDS = 6
+	local sick, healthy = Color3.fromRGB(150, 168, 100), Color3.fromRGB(238, 190, 150)
+	local head = make("Frame", { Size = UDim2.fromScale(0.2, 0.62), Position = UDim2.fromScale(0.4, 0.04), BackgroundColor3 = sick, BorderSizePixel = 0, ZIndex = 6 }, A)
+	corner(head, 0.16)
+	make("UIStroke", { Color = Color3.fromRGB(20, 20, 24), Thickness = 4 }, head)
+	for _, x in ipairs({ 0.22, 0.62 }) do
+		local e = make("Frame", { Size = UDim2.fromScale(0.16, 0.11), Position = UDim2.fromScale(x, 0.3), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 7 }, head)
+		corner(e, 0.3)
+	end
+	local mouth = make("Frame", { Size = UDim2.fromScale(0.4, 0.06), Position = UDim2.fromScale(0.3, 0.72), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 7 }, head)
+	corner(mouth, 0.5)
+	local pimples, cleared = {}, 0
+	local spots = { { 0.12, 0.12 }, { 0.62, 0.1 }, { 0.4, 0.2 }, { 0.78, 0.45 }, { 0.08, 0.5 }, { 0.3, 0.55 }, { 0.62, 0.58 }, { 0.46, 0.84 } }
+	for _, s in ipairs(spots) do
+		local p = make("Frame", { Size = UDim2.fromScale(0.13, 0.1), Position = UDim2.fromScale(s[1], s[2]), BackgroundColor3 = Color3.fromRGB(200, 50, 50), BorderSizePixel = 0, ZIndex = 8 }, head)
+		make("UIAspectRatioConstraint", { AspectRatio = 1 }, p)
+		corner(p, 0.5)
+		table.insert(pimples, p)
+	end
+	local track = make("Frame", { Size = UDim2.fromScale(0.9, 0.16), Position = UDim2.fromScale(0.05, 0.76), BackgroundColor3 = Color3.fromRGB(40, 42, 54), BorderSizePixel = 0, ZIndex = 6 }, A)
+	corner(track, 0.2)
+	make("UIStroke", { Color = C.brickDark, Thickness = 3 }, track)
+	local zone = make("Frame", { Size = UDim2.fromScale(0.2, 1), BackgroundColor3 = Color3.fromRGB(70, 220, 120), BorderSizePixel = 0, ZIndex = 7 }, track)
+	corner(zone, 0.15)
+	local gold = make("Frame", { Size = UDim2.fromScale(0.3, 1), Position = UDim2.fromScale(0.35, 0), BackgroundColor3 = C.yellow, BorderSizePixel = 0, ZIndex = 8 }, zone)
+	local cursor = make("Frame", { Size = UDim2.fromScale(0.012, 1.35), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 10 }, track)
+	local fb = S.label(A, "", { Size = UDim2.fromScale(0.3, 0.12), Position = UDim2.fromScale(0.35, 0.62), color = C.yellow, z = 12 })
+	local roundLbl = S.label(A, "ROUND 1/" .. ROUNDS, { Size = UDim2.fromScale(0.18, 0.08), Position = UDim2.fromScale(0.02, 0.03), color = C.white, xAlign = Enum.TextXAlignment.Left, z = 12 })
+
+	local round, pos, dir, total, center, width, locked = 1, 0, 1, 0, 0.5, 0.22, false
+	local function setup()
+		width = 0.22 - 0.02 * (round - 1)
+		center = 0.2 + math.random() * 0.6
+		zone.Size = UDim2.fromScale(width, 1)
+		zone.Position = UDim2.fromScale(center - width / 2, 0)
+		S.pop(zone, 1.2)
+		roundLbl.Text = "ROUND " .. round .. "/" .. ROUNDS
+		locked = false
+	end
+	setup()
+	local function hit()
+		if not sh.alive or locked then return end
+		locked = true
+		local d = math.abs(pos - center)
+		local val, txt, col, rem = 0, "RATE...", C.red, 0
+		if d <= width / 2 * 0.3 then val, txt, col, rem = 1, "PERFECT !", C.yellow, 2
+		elseif d <= width / 2 then val, txt, col, rem = 0.7, "GOOD", C.green, 1 end
+		total += val
+		fb.Text, fb.TextColor3 = txt, col
+		S.pop(fb, 1.6)
+		local bx = UDim2.fromScale(pos, 0.5)
+		S.burst(track, bx, col, val > 0 and 16 or 6, 80)
+		if val == 0 then S.shake(sh.panel, 6, 0.25) else S.sfx("ping") end
+		for _ = 1, rem do
+			cleared += 1
+			local p = pimples[cleared]
+			if p then
+				S.burst(head, p.Position, C.white, 8, 60)
+				tween(p, 0.3, { BackgroundTransparency = 1, Size = UDim2.fromScale(0, 0) })
+			end
+		end
+		tween(head, 0.35, { BackgroundColor3 = sick:Lerp(healthy, math.min(1, cleared / 8)) })
+		S.pop(head, 1.1)
+		round += 1
+		task.delay(0.55, function()
+			if not sh.alive then return end
+			if round > ROUNDS then sh.finish(total / ROUNDS) else fb.Text = "" setup() end
+		end)
+	end
+	local tap = tapArea(sh)
+	tap.Activated:Connect(hit)
+	key(sh, function(k, down) if down and k == Enum.KeyCode.Space then hit() end end)
+	table.insert(sh.conns, RunService.RenderStepped:Connect(function(dt)
+		local el = os.clock() - sh.started
+		sh.setTimer(1 - el / sh.info.duration)
+		if el >= sh.info.duration then sh.finish(total / ROUNDS) return end
+		local speed = 0.85 + 0.22 * round
+		pos += dir * speed * dt
+		if pos > 1 then pos, dir = 1, -1 elseif pos < 0 then pos, dir = 0, 1 end
+		cursor.Position = UDim2.fromScale(pos, 0.5)
+		gold.BackgroundTransparency = 0.15 + 0.15 * math.sin(el * 8)
+	end))
+end
+
+------------------------------------------------------------------
+-- FRAME : spam de tap pour soulever (reps)
+------------------------------------------------------------------
+GAMES.frame = function(sh)
+	local A = sh.arena
+	local GOAL = 8
+	local meterBack = make("Frame", { Size = UDim2.fromScale(0.07, 0.8), Position = UDim2.fromScale(0.04, 0.1), BackgroundColor3 = Color3.fromRGB(40, 42, 54), BorderSizePixel = 0, ZIndex = 6 }, A)
+	corner(meterBack, 0.2)
+	make("UIStroke", { Color = C.brickDark, Thickness = 3 }, meterBack)
+	local mfill = make("Frame", { AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), Size = UDim2.fromScale(1, 0.25), BackgroundColor3 = C.orange, BorderSizePixel = 0, ZIndex = 7 }, meterBack)
+	corner(mfill, 0.2)
+	S.label(A, "POWER", { Size = UDim2.fromScale(0.1, 0.07), Position = UDim2.fromScale(0.025, 0.01), z = 8 })
+	local reps = 0
+	local repLbl = S.label(A, "REPS 0/" .. GOAL, { Size = UDim2.fromScale(0.28, 0.12), Position = UDim2.fromScale(0.68, 0.03), color = C.yellow, xAlign = Enum.TextXAlignment.Right, z = 12 })
+	-- barre + disques
+	local rig = make("Frame", { Size = UDim2.fromScale(0.6, 0.26), Position = UDim2.fromScale(0.22, 0.6), BackgroundTransparency = 1, ZIndex = 6 }, A)
+	local sc = make("UIScale", {}, rig)
+	local bar = make("Frame", { Size = UDim2.fromScale(1, 0.12), Position = UDim2.fromScale(0, 0.44), BackgroundColor3 = Color3.fromRGB(150, 156, 170), BorderSizePixel = 0, ZIndex = 7 }, rig)
+	corner(bar, 0.5)
+	for side = 0, 1 do
+		for k, w in ipairs({ 0.075, 0.05, 0.03 }) do
+			local x = side == 0 and (0.02 + (k - 1) * 0.085) or (0.98 - (k - 1) * 0.085 - w)
+			local h = 1 - (k - 1) * 0.2
+			local p = make("Frame", { Size = UDim2.fromScale(w, h), Position = UDim2.fromScale(x, (1 - h) / 2), BackgroundColor3 = k == 1 and Color3.fromRGB(190, 40, 40) or (k == 2 and Color3.fromRGB(40, 90, 200) or Color3.fromRGB(230, 200, 50)), BorderSizePixel = 0, ZIndex = 8 }, rig)
+			corner(p, 0.12)
+			make("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 2 }, p)
+		end
+	end
+	-- haltérophile (tete + corps)
+	local body = make("Frame", { Size = UDim2.fromScale(0.07, 0.3), Position = UDim2.fromScale(0.465, 0.64), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 5 }, A)
+	corner(body, 0.2)
+	local hd = make("Frame", { Size = UDim2.fromScale(0.05, 0.13), Position = UDim2.fromScale(0.475, 0.5), BackgroundColor3 = Color3.fromRGB(245, 205, 48), BorderSizePixel = 0, ZIndex = 5 }, A)
+	corner(hd, 0.2)
+	local fb = S.label(A, "", { Size = UDim2.fromScale(0.3, 0.14), Position = UDim2.fromScale(0.35, 0.2), color = C.yellow, z = 12 })
+
+	local p, over = 0.25, false
+	local function tapFn()
+		if not sh.alive then return end
+		p = math.min(1.05, p + 0.085)
+		S.burst(A, UDim2.fromScale(0.5, 0.55), C.orange, 3, 50)
+		tween(sc, 0.06, { Scale = 1.06 })
+		task.delay(0.06, function() if sc.Parent then tween(sc, 0.1, { Scale = 1 }) end end)
+	end
+	local tap = tapArea(sh)
+	tap.Activated:Connect(tapFn)
+	key(sh, function(k, down) if down and k == Enum.KeyCode.Space then tapFn() end end)
+	table.insert(sh.conns, RunService.RenderStepped:Connect(function(dt)
+		local el = os.clock() - sh.started
+		sh.setTimer(1 - el / sh.info.duration)
+		local score = math.min(1, (reps + p * 0.5) / GOAL)
+		if el >= sh.info.duration then sh.finish(score) return end
+		if over then return end
+		p = math.max(0, p - (0.32 + 0.045 * reps) * dt)
+		if p >= 1 then
+			reps += 1
+			p = 0.3
+			repLbl.Text = "REPS " .. reps .. "/" .. GOAL
+			S.pop(repLbl, 1.5)
+			fb.Text = "REP " .. reps .. " !"
+			fb.TextColor3 = C.yellow
+			S.pop(fb, 1.7)
+			S.shake(sh.panel, 9, 0.3)
+			S.burst(A, UDim2.fromScale(0.5, 0.3), C.yellow, 22, 140)
+			S.flash(sh.panel, C.orange, 0.75, 0.3)
+			S.sfx("hit")
+			if reps >= GOAL then
+				over = true
+				task.delay(0.5, function() sh.finish(1) end)
+			end
+			task.delay(0.8, function() if fb.Parent then fb.Text = "" end end)
+		end
+		mfill.Size = UDim2.fromScale(1, math.clamp(p, 0, 1))
+		mfill.BackgroundColor3 = C.orange:Lerp(C.red, math.clamp(p, 0, 1))
+		rig.Position = UDim2.fromScale(0.22, 0.6 - 0.46 * math.clamp(p, 0, 1))
+	end))
+end
+
+------------------------------------------------------------------
+-- HEIGHT : garde la barre dans la zone, la tour grandit
+------------------------------------------------------------------
+GAMES.height = function(sh)
+	local A = sh.arena
+	local track = make("Frame", { Size = UDim2.fromScale(0.12, 0.9), Position = UDim2.fromScale(0.14, 0.05), BackgroundColor3 = Color3.fromRGB(40, 42, 54), BorderSizePixel = 0, ZIndex = 6 }, A)
+	corner(track, 0.15)
+	make("UIStroke", { Color = C.brickDark, Thickness = 3 }, track)
+	for i = 1, 9 do
+		make("Frame", { Size = UDim2.fromScale(0.35, 0.008), Position = UDim2.fromScale(0, i / 10), BackgroundColor3 = Color3.fromRGB(80, 84, 100), BorderSizePixel = 0, ZIndex = 6 }, track)
+	end
+	local TH, BH = 0.26, 0.2
+	local zone = make("Frame", { Size = UDim2.fromScale(1, TH), BackgroundColor3 = Color3.fromRGB(70, 220, 120), BackgroundTransparency = 0.35, BorderSizePixel = 0, ZIndex = 7 }, track)
+	corner(zone, 0.15)
+	local barf = make("Frame", { Size = UDim2.fromScale(0.7, BH), Position = UDim2.fromScale(0.15, 0.7), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 9 }, track)
+	corner(barf, 0.2)
+	make("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 3 }, barf)
+	S.label(A, "GRANDIS", { Size = UDim2.fromScale(0.3, 0.1), Position = UDim2.fromScale(0.55, 0.02), color = C.blue, z = 8 })
+	local blocks = {}
+	local N = 12
+	local col = make("Frame", { Size = UDim2.fromScale(0.22, 0.86), Position = UDim2.fromScale(0.62, 0.1), BackgroundTransparency = 1, ZIndex = 6 }, A)
+	local ground = make("Frame", { Size = UDim2.fromScale(1.6, 0.03), Position = UDim2.fromScale(-0.3, 0.97), BackgroundColor3 = Color3.fromRGB(70, 72, 86), BorderSizePixel = 0, ZIndex = 6 }, col)
+	for i = 1, N do
+		local b = make("Frame", {
+			Size = UDim2.fromScale(1, 0.07), Position = UDim2.fromScale(0, 0.97 - i * 0.0735), BackgroundColor3 = C.blue:Lerp(C.purple, i / N),
+			BorderSizePixel = 0, ZIndex = 7, Visible = false,
+		}, col)
+		corner(b, 0.2)
+		make("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 2 }, b)
+		blocks[i] = b
+	end
+	local headF = make("Frame", { Size = UDim2.fromScale(0.5, 0.07), Position = UDim2.fromScale(0.25, 0.97 - 0.0735), BackgroundColor3 = Color3.fromRGB(245, 205, 48), BorderSizePixel = 0, ZIndex = 8 }, col)
+	corner(headF, 0.2)
+	make("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 2 }, headF)
+	local pct = S.label(A, "0%", { Size = UDim2.fromScale(0.2, 0.1), Position = UDim2.fromScale(0.34, 0.45), color = C.white, z = 12 })
+
+	local py, vel, g, holding, shown = 0.7, 0, 0, false, 0
+	local function setHold(v) holding = v end
+	local tap = tapArea(sh)
+	tap.MouseButton1Down:Connect(function() setHold(true) end)
+	tap.MouseButton1Up:Connect(function() setHold(false) end)
+	tap.MouseLeave:Connect(function() setHold(false) end)
+	key(sh, function(k, down) if k == Enum.KeyCode.Space then setHold(down) end end)
+	table.insert(sh.conns, RunService.RenderStepped:Connect(function(dt)
+		local el = os.clock() - sh.started
+		sh.setTimer(1 - el / sh.info.duration)
+		if el >= sh.info.duration then sh.finish(g) return end
+		vel += (holding and -3.4 or 2.6) * dt
+		vel = math.clamp(vel, -1.1, 1.1)
+		py += vel * dt
+		if py < 0 then py, vel = 0, 0 elseif py > 1 - BH then py, vel = 1 - BH, 0 end
+		local ty = (1 - TH) * (0.5 + 0.38 * math.sin(el * 0.85) + 0.12 * math.sin(el * 2.3 + 1))
+		zone.Position = UDim2.fromScale(0, ty)
+		barf.Position = UDim2.fromScale(0.15, py)
+		local ov = py < ty + TH and py + BH > ty
+		if ov then g = math.min(1, g + dt / 12) else g = math.max(0, g - dt / 30) end
+		barf.BackgroundColor3 = ov and Color3.fromRGB(150, 255, 170) or Color3.fromRGB(255, 160, 160)
+		zone.BackgroundTransparency = ov and 0.15 or 0.4
+		pct.Text = math.floor(g * 100) .. "%"
+		local n = math.floor(g * N)
+		if n ~= shown then
+			if n > shown then
+				for i = shown + 1, n do
+					blocks[i].Visible = true
+					S.pop(blocks[i], 1.5)
+					S.burst(col, UDim2.fromScale(0.5, 0.97 - i * 0.0735), C.blue, 6, 50)
+				end
+			else
+				for i = n + 1, shown do blocks[i].Visible = false end
+			end
+			shown = n
+			headF.Position = UDim2.fromScale(0.25, 0.97 - (n + 1) * 0.0735)
+		end
+		if g >= 1 then sh.finish(1) end
+	end))
+end
+
+------------------------------------------------------------------
+-- BODYFAT : cardio, 3 couloirs, haies et bouteilles d'eau
+------------------------------------------------------------------
+GAMES.bodyfat = function(sh)
+	local A = sh.arena
+	local LANES = { 0.32, 0.5, 0.68 }
+	for i = 1, 3 do
+		make("Frame", { Size = UDim2.fromScale(0.17, 1), AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(LANES[i], 0), BackgroundColor3 = Color3.fromRGB(46, 50, 62), BorderSizePixel = 0, ZIndex = 5 }, A)
+	end
+	local strips = {}
+	for i = 1, 9 do
+		local s = make("Frame", { Size = UDim2.fromScale(0.55, 0.02), Position = UDim2.fromScale(0.225, (i - 1) / 9), BackgroundColor3 = Color3.fromRGB(80, 220, 130), BackgroundTransparency = 0.6, BorderSizePixel = 0, ZIndex = 5 }, A)
+		strips[i] = s
+	end
+	local runner = make("Frame", { Size = UDim2.fromScale(0.07, 0.2), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(LANES[2], 0.8), BackgroundTransparency = 1, ZIndex = 10 }, A)
+	make("UIAspectRatioConstraint", { AspectRatio = 0.7 }, runner)
+	local rh = make("Frame", { Size = UDim2.fromScale(0.7, 0.38), Position = UDim2.fromScale(0.15, 0), BackgroundColor3 = Color3.fromRGB(245, 205, 48), BorderSizePixel = 0, ZIndex = 10 }, runner)
+	corner(rh, 0.2)
+	local rb = make("Frame", { Size = UDim2.fromScale(1, 0.62), Position = UDim2.fromScale(0, 0.38), BackgroundColor3 = C.black, BorderSizePixel = 0, ZIndex = 10 }, runner)
+	corner(rb, 0.15)
+	local score = S.label(A, "0", { Size = UDim2.fromScale(0.14, 0.1), Position = UDim2.fromScale(0.84, 0.03), color = C.green, z = 12 })
+	local fb = S.label(A, "", { Size = UDim2.fromScale(0.3, 0.12), Position = UDim2.fromScale(0.35, 0.3), color = C.yellow, z = 12 })
+	local lane, pts, items, spawnT = 2, 0, {}, 0
+	local function setLane(l)
+		lane = math.clamp(l, 1, 3)
+		tween(runner, 0.1, { Position = UDim2.fromScale(LANES[lane], 0.8) })
+	end
+	local function addPts(n, txt, col)
+		pts += n
+		score.Text = tostring(math.max(0, pts))
+		S.pop(score, 1.4)
+		fb.Text, fb.TextColor3 = txt, col
+		S.pop(fb, 1.5)
+		task.delay(0.5, function() if fb.Parent then fb.Text = "" end end)
+	end
+	local left = make("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(0.5, 1), ZIndex = 20 }, A)
+	local right = make("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(0.5, 1), Position = UDim2.fromScale(0.5, 0), ZIndex = 20 }, A)
+	left.Activated:Connect(function() setLane(lane - 1) end)
+	right.Activated:Connect(function() setLane(lane + 1) end)
+	key(sh, function(k, down)
+		if not down then return end
+		if k == Enum.KeyCode.A or k == Enum.KeyCode.Left then setLane(lane - 1) end
+		if k == Enum.KeyCode.D or k == Enum.KeyCode.Right then setLane(lane + 1) end
+	end)
+	table.insert(sh.conns, RunService.RenderStepped:Connect(function(dt)
+		local el = os.clock() - sh.started
+		sh.setTimer(1 - el / sh.info.duration)
+		if el >= sh.info.duration then sh.finish(pts / 40) return end
+		local v = 0.75 + el * 0.012
+		for i, s in ipairs(strips) do
+			local y = (s.Position.Y.Scale + v * dt) % 1
+			s.Position = UDim2.fromScale(0.225, y)
+		end
+		runner.Rotation = math.sin(el * 16) * 4
+		spawnT -= dt
+		if spawnT <= 0 then
+			spawnT = 0.55
+			local l = math.random(1, 3)
+			local water = math.random() < 0.3
+			local f = make("Frame", { Size = UDim2.fromScale(water and 0.05 or 0.14, water and 0.1 or 0.07), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(LANES[l], -0.1), BackgroundColor3 = water and Color3.fromRGB(80, 190, 255) or Color3.fromRGB(230, 60, 60), BorderSizePixel = 0, ZIndex = 8 }, A)
+			corner(f, water and 0.3 or 0.15)
+			make("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 2 }, f)
+			table.insert(items, { f = f, lane = l, water = water, y = -0.1, done = false })
+		end
+		for i = #items, 1, -1 do
+			local it = items[i]
+			it.y += v * dt
+			it.f.Position = UDim2.fromScale(LANES[it.lane], it.y)
+			if not it.done and math.abs(it.y - 0.8) < 0.08 and it.lane == lane then
+				it.done = true
+				if it.water then
+					addPts(2, "+2 EAU", C.blue)
+					S.burst(A, it.f.Position, C.blue, 14, 80)
+					it.f:Destroy()
+					table.remove(items, i)
+					continue
+				else
+					addPts(-2, "AIE !", C.red)
+					S.shake(sh.panel, 8, 0.25)
+					S.flash(sh.panel, C.red, 0.7, 0.3)
+					S.burst(A, it.f.Position, C.red, 12, 80)
+				end
+			end
+			if it.y > 0.92 and not it.done then
+				it.done = true
+				if not it.water then addPts(1, "+1", C.green) end
+			end
+			if it.y > 1.15 then
+				it.f:Destroy()
+				table.remove(items, i)
+			end
+		end
+	end))
+end
+
+------------------------------------------------------------------
+-- API
+------------------------------------------------------------------
+function M.run(gui, station, onSubmit, onClose)
+	local info = INFO[station]
+	if not info or not GAMES[station] then
+		onSubmit(-1)
+		onClose()
+		return
+	end
+	local sh = newShell(gui, info, onSubmit, onClose)
+	GAMES[station](sh)
+end
+
+function M.showGain(stat, gain, value)
+	local sh = M.current
+	if not sh or not sh.gain or not sh.gain.Parent then return end
+	if gain > 0 then
+		sh.gain.Text = (stat == "Bodyfat" and "-" or "+") .. gain .. " " .. string.upper(stat) .. "  (" .. value .. "/100)"
+	else
+		sh.gain.Text = "Pas de gain... reessaie !"
+	end
+	S.pop(sh.gain, 1.5)
+end
+
+return M
+]]></ProtectedString></Properties></Item><Item class="ModuleScript" referent="RBX3"><Properties><string name="Name">BattleUI</string><ProtectedString name="Source"><![CDATA[-- BattleUI : ModuleScript (enfant de MogClient) - menu, HUD, animations du Mog Battle
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+local S = require(script.Parent.Studs)
+local C, make, tween = S.C, S.make, S.tween
+
+local M = {}
+M.active = false
+M.onActive = nil
+local gui, remotes
+local menu, hud, invitePanel
+local state = {}
+
+local MOVE_INFO = {
+	FLEX = { color = C.orange, sub = "FRAME + BODYFAT - bat STARE" },
+	STARE = { color = C.pink, sub = "FACE - bat TOWER" },
+	TOWER = { color = C.blue, sub = "HEIGHT - bat FLEX" },
+}
+local MOVE_ORDER = { "FLEX", "STARE", "TOWER" }
+
+------------------------------------------------------------------
+-- CAMERA / FX 3D
+------------------------------------------------------------------
+local function camOn()
+	local cam = Workspace.CurrentCamera
+	state.shakeMag = 0
+	cam.CameraType = Enum.CameraType.Scriptable
+	cam.FieldOfView = 58
+	state.camConn = RunService.RenderStepped:Connect(function()
+		local t = os.clock()
+		local base = CFrame.lookAt(Vector3.new(math.sin(t * 0.35) * 7, 9.5, 22), Vector3.new(0, 5.4, 0))
+		local m = state.shakeMag or 0
+		local off = CFrame.new()
+		if m > 0.01 then off = CFrame.new((math.random() - 0.5) * m, (math.random() - 0.5) * m, 0) end
+		cam.CFrame = base * off
+		state.shakeMag = m * 0.9
+	end)
+end
+
+local function camOff()
+	if state.camConn then state.camConn:Disconnect() state.camConn = nil end
+	local cam = Workspace.CurrentCamera
+	cam.CameraType = Enum.CameraType.Custom
+	cam.FieldOfView = 70
+end
+
+local function ring(color)
+	local p = Instance.new("Part")
+	p.Anchored, p.CanCollide, p.CanQuery, p.CastShadow = true, false, false, false
+	p.Material = Enum.Material.Neon
+	p.Color = color
+	p.Size = Vector3.new(2, 0.4, 2)
+	p.CFrame = CFrame.new(0, 1.7, 0)
+	p.Parent = Workspace
+	S.tween(p, 0.7, { Size = Vector3.new(34, 0.4, 34), Transparency = 1 })
+	Debris:AddItem(p, 1)
+end
+
+------------------------------------------------------------------
+-- MENU
+------------------------------------------------------------------
+local function closeMenu()
+	if menu then
+		local m = menu
+		menu = nil
+		local sc = m:FindFirstChildOfClass("UIScale")
+		if sc then tween(sc, 0.2, { Scale = 0.3 }, Enum.EasingStyle.Back, Enum.EasingDirection.In) end
+		task.delay(0.22, function() m:Destroy() end)
+	end
+end
+
+function M.openMenu()
+	if menu or state.id then return end
+	menu = S.panel(gui, { Name = "BattleMenu", Size = UDim2.fromScale(0.44, 0.7), Position = UDim2.fromScale(0.5, 0.5), AnchorPoint = Vector2.new(0.5, 0.5), cols = 18, rows = 18, z = 20 })
+	make("UIAspectRatioConstraint", { AspectRatio = 0.95 }, menu)
+	local sc = make("UIScale", { Scale = 0.4 }, menu)
+	tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
+	S.title(menu, "MOG BATTLE", UDim2.fromScale(0.74, 0.14), UDim2.fromScale(0.04, 0.03), C.purple)
+	S.label(menu, "Choisis ton adversaire", { Size = UDim2.fromScale(0.8, 0.05), Position = UDim2.fromScale(0.1, 0.2), font = Enum.Font.GothamBold, stroke = false, z = 4 })
+	local x = S.button(menu, "X", { Size = UDim2.fromScale(0.1, 0.1), Position = UDim2.fromScale(0.86, 0.03), color = C.red, cols = 3, rows = 3, textW = 0.7, textH = 0.7, z = 6 })
+	make("UIAspectRatioConstraint", { AspectRatio = 1 }, x)
+	x.Activated:Connect(closeMenu)
+	local list = {
+		{ "VS BOT ROOKIE", C.green, "AI", 1 }, { "VS BOT MOGLORD", C.orange, "AI", 2 },
+		{ "VS BOT SIGMA", C.red, "AI", 3 }, { "VS JOUEUR PROCHE", Color3.fromRGB(120, 60, 210), "PVP", 0 },
+	}
+	for i, it in ipairs(list) do
+		local b = S.button(menu, it[1], { Size = UDim2.fromScale(0.84, 0.13), Position = UDim2.fromScale(0.08, 0.28 + (i - 1) * 0.165), color = it[2], cols = 14, rows = 3, z = 6 })
+		b.Activated:Connect(function()
+			remotes.BattleRequest:FireServer(it[3], it[4])
+			closeMenu()
+		end)
+	end
+end
+
+------------------------------------------------------------------
+-- HUD
+------------------------------------------------------------------
+local function hpColor(hp)
+	if hp > 55 then return Color3.fromRGB(90, 230, 110) end
+	if hp > 25 then return C.yellow end
+	return C.red
+end
+
+local function makeCard(side, info)
+	local f = S.panel(hud, { Size = UDim2.fromScale(0.34, 0.12), Position = UDim2.fromScale(side == 1 and 0.02 or 0.64, 0.03), cols = 16, rows = 3, z = 5 })
+	local xa = side == 1 and Enum.TextXAlignment.Left or Enum.TextXAlignment.Right
+	S.label(f, info.name, { Size = UDim2.fromScale(0.6, 0.38), Position = UDim2.fromScale(side == 1 and 0.04 or 0.36, 0.06), xAlign = xa, z = 6 })
+	S.label(f, "MOG " .. info.score, { Size = UDim2.fromScale(0.34, 0.3), Position = UDim2.fromScale(side == 1 and 0.64 or 0.02, 0.1), color = C.yellow, xAlign = side == 1 and Enum.TextXAlignment.Right or Enum.TextXAlignment.Left, z = 6 })
+	local back = make("Frame", { BackgroundColor3 = C.black, Size = UDim2.fromScale(0.92, 0.3), Position = UDim2.fromScale(0.04, 0.56), BorderSizePixel = 0, ZIndex = 6 }, f)
+	make("UICorner", { CornerRadius = UDim.new(0.3, 0) }, back)
+	local fill = make("Frame", {
+		BackgroundColor3 = hpColor(100), Size = UDim2.fromScale(1, 1), BorderSizePixel = 0, ZIndex = 7,
+		AnchorPoint = side == 2 and Vector2.new(1, 0) or Vector2.zero, Position = side == 2 and UDim2.fromScale(1, 0) or UDim2.new(),
+	}, back)
+	make("UICorner", { CornerRadius = UDim.new(0.3, 0) }, fill)
+	local txt = S.label(back, "100", { Size = UDim2.fromScale(0.3, 1), Position = UDim2.fromScale(0.35, 0), z = 8 })
+	return { frame = f, fill = fill, txt = txt }
+end
+
+local function setHp(card, hp)
+	tween(card.fill, 0.5, { Size = UDim2.fromScale(math.clamp(hp / 100, 0, 1), 1), BackgroundColor3 = hpColor(hp) })
+	card.txt.Text = tostring(hp)
+end
+
+local function buildHud(d)
+	hud = make("Frame", { Name = "BattleHUD", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 5, Active = false }, gui)
+	state.me = makeCard(1, d.me)
+	state.opp = makeCard(2, d.opp)
+	state.roundLbl = S.label(hud, "", { Size = UDim2.fromScale(0.2, 0.08), Position = UDim2.fromScale(0.4, 0.04), color = C.white, z = 6 })
+	state.wait = S.label(hud, "", { Size = UDim2.fromScale(0.4, 0.06), Position = UDim2.fromScale(0.3, 0.7), color = C.white, font = Enum.Font.GothamBold, z = 6 })
+end
+
+local function clearHud()
+	if hud then hud:Destroy() hud = nil end
+	state.me, state.opp = nil, nil
+end
+
+------------------------------------------------------------------
+-- TOUR : choix du coup puis timing
+------------------------------------------------------------------
+local function lockMove(move, timing)
+	if state.locked then return end
+	state.locked = true
+	remotes.BattleMove:FireServer(state.id, move, timing)
+	if state.wait then state.wait.Text = "En attente de l'adversaire..." end
+end
+
+local function timingMeter(move)
+	local holder = make("Frame", { BackgroundTransparency = 1, Size = UDim2.fromScale(0.5, 0.2), Position = UDim2.fromScale(0.25, 0.68), ZIndex = 30 }, hud)
+	S.label(holder, move .. " - TIMING !", { Size = UDim2.fromScale(1, 0.38), color = MOVE_INFO[move].color, z = 31 })
+	local bar = S.panel(holder, { Size = UDim2.fromScale(1, 0.4), Position = UDim2.fromScale(0, 0.45), color = C.panel, z = 31, stroke = 3 })
+	local sweet = make("Frame", { Size = UDim2.fromScale(0.3, 1), Position = UDim2.fromScale(0.35, 0), BackgroundColor3 = Color3.fromRGB(70, 200, 110), BorderSizePixel = 0, ZIndex = 32 }, bar)
+	make("Frame", { Size = UDim2.fromScale(0.1, 1), Position = UDim2.fromScale(0.45, 0), BackgroundColor3 = C.yellow, BorderSizePixel = 0, ZIndex = 33 }, bar)
+	local cur = make("Frame", { Size = UDim2.fromScale(0.02, 1.4), AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 35 }, bar)
+	local btn = make("TextButton", { Text = "", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), ZIndex = 29 }, hud)
+	local pos, dir, t0, done = 0, 1, os.clock(), false
+	local conns = {}
+	local function finish()
+		if done then return end
+		done = true
+		for _, c in ipairs(conns) do c:Disconnect() end
+		btn:Destroy()
+		local timing = math.clamp(1 - math.abs(pos - 0.5) * 1.6, 0, 1)
+		local lbl = S.label(holder, timing > 0.88 and "PERFECT !" or (timing > 0.55 and "GOOD" or "FAIBLE"), { Size = UDim2.fromScale(1, 0.4), Position = UDim2.fromScale(0, 0.45), color = timing > 0.88 and C.yellow or (timing > 0.55 and C.green or C.red), z = 36 })
+		S.pop(lbl, 1.6)
+		S.burst(hud, UDim2.fromScale(0.5, 0.76), timing > 0.55 and C.yellow or C.red, 16, 110)
+		S.sfx("ping")
+		lockMove(move, timing)
+		task.delay(0.7, function() holder:Destroy() end)
+	end
+	table.insert(conns, RunService.RenderStepped:Connect(function(dt)
+		pos += dir * 1.7 * dt
+		if pos > 1 then pos, dir = 1, -1 elseif pos < 0 then pos, dir = 0, 1 end
+		cur.Position = UDim2.fromScale(pos, 0.5)
+		sweet.BackgroundTransparency = 0.1 + 0.15 * math.sin(os.clock() * 10)
+		if os.clock() - t0 > 2.2 then finish() end
+	end))
+	table.insert(conns, UIS.InputBegan:Connect(function(i)
+		if i.KeyCode == Enum.KeyCode.Space then finish() end
+	end))
+	btn.Activated:Connect(finish)
+end
+
+local function startRound(round, time)
+	if not hud then return end
+	state.locked = false
+	state.round = round
+	state.roundLbl.Text = "ROUND " .. round
+	S.pop(state.roundLbl, 1.6)
+	state.wait.Text = ""
+	local banner = S.stamp(hud, "ROUND " .. round, C.white, UDim2.fromScale(0.5, 0.18), UDim2.fromScale(0.5, 0.4))
+	task.delay(0.9, function() tween(banner, 0.3, { TextTransparency = 1 }) task.delay(0.3, function() banner:Destroy() end) end)
+	local moves = make("Frame", { Name = "Moves", BackgroundTransparency = 1, Size = UDim2.fromScale(0.64, 0.22), Position = UDim2.fromScale(0.18, 1.05), ZIndex = 20 }, hud)
+	tween(moves, 0.45, { Position = UDim2.fromScale(0.18, 0.74) }, Enum.EasingStyle.Back)
+	local cd = make("Frame", { BackgroundColor3 = C.white, Size = UDim2.fromScale(1, 0.05), Position = UDim2.fromScale(0, -0.09), BorderSizePixel = 0, ZIndex = 21 }, moves)
+	tween(cd, time, { Size = UDim2.fromScale(0, 0.05), BackgroundColor3 = C.red }, Enum.EasingStyle.Linear)
+	for i, mv in ipairs(MOVE_ORDER) do
+		local b = S.button(moves, mv, { Size = UDim2.fromScale(0.31, 1), Position = UDim2.fromScale((i - 1) * 0.345, 0), color = MOVE_INFO[mv].color, cols = 10, rows = 5, textW = 0.9, textH = 0.34, z = 21 })
+		S.label(b, MOVE_INFO[mv].sub, { Size = UDim2.fromScale(0.9, 0.14), Position = UDim2.fromScale(0.05, 0.74), font = Enum.Font.GothamBold, stroke = false, z = 4 })
+		b.Activated:Connect(function()
+			if state.locked or state.picking then return end
+			state.picking = true
+			tween(moves, 0.25, { Position = UDim2.fromScale(0.18, 1.1) })
+			task.delay(0.3, function() moves:Destroy() end)
+			S.shake(hud, 4, 0.2)
+			timingMeter(mv)
+			state.picking = false
+		end)
+	end
+	state.moves = moves
+end
+
+------------------------------------------------------------------
+-- REVELATION DU RESULTAT
+------------------------------------------------------------------
+local function moveCard(parent, x, who, d, tint)
+	local f = S.panel(parent, { Size = UDim2.fromScale(0.27, 0.9), Position = UDim2.fromScale(x < 0.5 and -0.3 or 1.3, 0.05), AnchorPoint = Vector2.new(0.5, 0), cols = 10, rows = 7, color = MOVE_INFO[d.move].color:Lerp(C.black, 0.35), z = 41 })
+	S.label(f, who, { Size = UDim2.fromScale(0.9, 0.16), Position = UDim2.fromScale(0.05, 0.04), font = Enum.Font.GothamBold, z = 43 })
+	S.label(f, d.move, { Size = UDim2.fromScale(0.9, 0.34), Position = UDim2.fromScale(0.05, 0.22), color = C.white, z = 43 })
+	local pw = S.label(f, "0", { Size = UDim2.fromScale(0.6, 0.26), Position = UDim2.fromScale(0.2, 0.58), color = C.yellow, z = 43 })
+	S.label(f, "POWER", { Size = UDim2.fromScale(0.5, 0.1), Position = UDim2.fromScale(0.25, 0.86), font = Enum.Font.GothamBold, stroke = false, z = 43 })
+	tween(f, 0.5, { Position = UDim2.fromScale(x, 0.05) }, Enum.EasingStyle.Back)
+	task.spawn(function()
+		task.wait(0.45)
+		local t0 = os.clock()
+		while os.clock() - t0 < 0.7 and pw.Parent do
+			pw.Text = tostring(math.floor(d.power * (os.clock() - t0) / 0.7))
+			task.wait()
+		end
+		if pw.Parent then pw.Text = tostring(d.power) S.pop(pw, 1.4) end
+	end)
+	return f
+end
+
+local function showResult(r)
+	if not hud then return end
+	if state.moves then state.moves:Destroy() state.moves = nil end
+	state.wait.Text = ""
+	local band = make("Frame", { BackgroundColor3 = C.black, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 0.38), Position = UDim2.fromScale(0, 0.3), ZIndex = 40, BorderSizePixel = 0 }, hud)
+	tween(band, 0.25, { BackgroundTransparency = 0.3 })
+	local cMe = moveCard(band, 0.2, "TOI", r.me)
+	local cOpp = moveCard(band, 0.8, "ADVERSAIRE", r.opp)
+	S.label(band, "VS", { Size = UDim2.fromScale(0.14, 0.4), Position = UDim2.fromScale(0.43, 0.3), color = C.white, z = 44 })
+	task.wait(1.35)
+	if r.triangle ~= "none" then
+		local tag = S.stamp(band, "AVANTAGE !", C.yellow, UDim2.fromScale(0.3, 0.2), UDim2.fromScale(r.triangle == "me" and 0.2 or 0.8, 0.0))
+		tag.Rotation = r.triangle == "me" and -8 or 8
+		S.sfx("ping")
+	end
+	task.wait(0.55)
+	ring(r.winner == "me" and Color3.fromRGB(80, 200, 255) or (r.winner == "opp" and Color3.fromRGB(255, 70, 90) or Color3.fromRGB(255, 220, 90)))
+	S.sfx("hit")
+	state.shakeMag = 3.5
+	if r.winner == "me" then
+		S.flash(gui, Color3.fromRGB(80, 200, 255), 0.7, 0.4)
+		local d = S.stamp(hud, "-" .. r.damage, C.red, UDim2.fromScale(0.18, 0.14), UDim2.fromScale(0.8, 0.2))
+		S.burst(hud, UDim2.fromScale(0.8, 0.09), C.red, 18, 120)
+		S.shake(state.opp.frame, 10, 0.4)
+		task.delay(1.2, function() d:Destroy() end)
+	elseif r.winner == "opp" then
+		S.flash(gui, Color3.fromRGB(255, 60, 70), 0.6, 0.45)
+		local d = S.stamp(hud, "-" .. r.damage, C.red, UDim2.fromScale(0.18, 0.14), UDim2.fromScale(0.2, 0.2))
+		S.burst(hud, UDim2.fromScale(0.2, 0.09), C.red, 18, 120)
+		S.shake(state.me.frame, 10, 0.4)
+		state.shakeMag = 5
+		task.delay(1.2, function() d:Destroy() end)
+	else
+		local d = S.stamp(hud, "CLASH !", C.yellow, UDim2.fromScale(0.3, 0.14), UDim2.fromScale(0.5, 0.22))
+		task.delay(1.2, function() d:Destroy() end)
+	end
+	setHp(state.me, r.me.hp)
+	setHp(state.opp, r.opp.hp)
+	task.wait(1.4)
+	tween(band, 0.25, { BackgroundTransparency = 1 })
+	band:Destroy()
+end
+
+local function showEnd(d)
+	if not hud then return end
+	if state.moves then state.moves:Destroy() state.moves = nil end
+	local win = d.result == "win"
+	local txt = win and "YOU MOGGED !" or "GOT MOGGED..."
+	local col = win and C.yellow or C.red
+	S.flash(gui, col, 0.5, 0.6)
+	local st = S.stamp(hud, txt, col, UDim2.fromScale(0.6, 0.22), UDim2.fromScale(0.5, 0.38))
+	st.ZIndex = 60
+	S.sfx(win and "ping" or "ko")
+	if win then
+		S.confetti(hud, 80)
+		if d.reward ~= "" then
+			local rw = S.label(hud, d.reward, { Size = UDim2.fromScale(0.4, 0.1), Position = UDim2.fromScale(0.3, 0.52), color = C.green, z = 60 })
+			S.pop(rw, 1.6)
+		end
+	end
+	state.shakeMag = win and 2 or 6
+end
+
+------------------------------------------------------------------
+-- INVITATION PVP
+------------------------------------------------------------------
+local function showInvite(name, id)
+	if invitePanel then invitePanel:Destroy() end
+	invitePanel = S.panel(gui, { Name = "Invite", Size = UDim2.fromScale(0.34, 0.2), Position = UDim2.fromScale(0.5, -0.3), AnchorPoint = Vector2.new(0.5, 0), cols = 14, rows = 6, z = 25 })
+	local p = invitePanel
+	tween(p, 0.45, { Position = UDim2.fromScale(0.5, 0.04) }, Enum.EasingStyle.Back)
+	S.label(p, name .. " te defie !", { Size = UDim2.fromScale(0.92, 0.3), Position = UDim2.fromScale(0.04, 0.07), z = 26 })
+	local ok = S.button(p, "ACCEPTER", { Size = UDim2.fromScale(0.44, 0.36), Position = UDim2.fromScale(0.04, 0.52), color = Color3.fromRGB(40, 150, 70), cols = 6, rows = 3, z = 27 })
+	local no = S.button(p, "REFUSER", { Size = UDim2.fromScale(0.44, 0.36), Position = UDim2.fromScale(0.52, 0.52), color = C.red, cols = 6, rows = 3, z = 27 })
+	local function reply(a)
+		remotes.BattleInviteReply:FireServer(id, a)
+		if p.Parent then
+			tween(p, 0.3, { Position = UDim2.fromScale(0.5, -0.3) })
+			task.delay(0.35, function() p:Destroy() end)
+		end
+	end
+	ok.Activated:Connect(function() reply(true) end)
+	no.Activated:Connect(function() reply(false) end)
+	task.delay(12, function() if p.Parent then reply(false) end end)
+end
+
+------------------------------------------------------------------
+-- INIT
+------------------------------------------------------------------
+function M.init(g, rem)
+	gui, remotes = g, rem
+	remotes.BattleInvite.OnClientEvent:Connect(showInvite)
+	remotes.BattleState.OnClientEvent:Connect(function(event, d)
+		if event == "menu" then
+			M.openMenu()
+		elseif event == "start" then
+			closeMenu()
+			clearHud()
+			state.id = d.id
+			M.active = true
+			if M.onActive then M.onActive(true) end
+			buildHud(d)
+			camOn()
+			S.flash(gui, Color3.new(0, 0, 0), 0, 0.01)
+			local vs = S.stamp(hud, d.me.name .. "  VS  " .. d.opp.name, C.white, UDim2.fromScale(0.8, 0.16), UDim2.fromScale(0.5, 0.45))
+			S.burst(hud, UDim2.fromScale(0.5, 0.45), C.purple, 30, 220)
+			task.delay(2.6, function() if vs.Parent then tween(vs, 0.4, { TextTransparency = 1 }) task.delay(0.4, function() vs:Destroy() end) end end)
+		elseif event == "round" then
+			task.spawn(startRound, d.round, d.time)
+		elseif event == "result" then
+			task.spawn(showResult, d)
+		elseif event == "end" then
+			task.spawn(function()
+				showEnd(d)
+				task.wait(4.6)
+				clearHud()
+				camOff()
+				state.id = nil
+				M.active = false
+				if M.onActive then M.onActive(false) end
+			end)
+		end
+	end)
+end
+
+return M
+]]></ProtectedString></Properties></Item></Item></Item></Item></roblox>
