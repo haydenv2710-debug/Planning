@@ -1,0 +1,41 @@
+{
+  "id": "mwmuzzxa6j3i",
+  "action": "publish",
+  "meta": null,
+  "ok": true,
+  "published": true,
+  "version": 40,
+  "versionType": "Published",
+  "universeId": "4287117024",
+  "placeId": "12156564732",
+  "kind": "rbxlx",
+  "gameName": "Mog Life",
+  "autoProject": null,
+  "packs": [],
+  "packName": null,
+  "blender": null,
+  "voxel": null,
+  "steps": {
+    "prepare": {
+      "ok": true,
+      "detail": "rbxlx: .roblox-push/game.rbxlx"
+    },
+    "stage": {
+      "ok": true,
+      "detail": "0 pack(s): none"
+    },
+    "publish": {
+      "ok": true,
+      "detail": "version 40"
+    },
+    "store": {
+      "ok": true,
+      "detail": "12156564732/base.rbxlx"
+    }
+  },
+  "luau": null,
+  "error": null,
+  "playUrl": "https://www.roblox.com/games/12156564732",
+  "runUrl": "https://github.com/haydenv2710-debug/Planning/actions/runs/44435615016",
+  "seconds": 5.2
+}
