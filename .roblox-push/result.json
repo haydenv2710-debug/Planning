@@ -1,0 +1,41 @@
+{
+  "id": "mwxinv46bsjr",
+  "action": "publish",
+  "meta": null,
+  "ok": true,
+  "published": true,
+  "version": 43,
+  "versionType": "Published",
+  "universeId": "4287117024",
+  "placeId": "12156564732",
+  "kind": "rbxl",
+  "gameName": "NHL manager",
+  "autoProject": null,
+  "packs": [],
+  "packName": null,
+  "blender": null,
+  "voxel": null,
+  "steps": {
+    "prepare": {
+      "ok": true,
+      "detail": "rbxl: .roblox-push/game.rbxl"
+    },
+    "stage": {
+      "ok": true,
+      "detail": "0 pack(s): none"
+    },
+    "publish": {
+      "ok": true,
+      "detail": "version 43"
+    },
+    "store": {
+      "ok": true,
+      "detail": "12156564732/base.rbxl"
+    }
+  },
+  "luau": null,
+  "error": null,
+  "playUrl": "https://www.roblox.com/games/12156564732",
+  "runUrl": "https://github.com/haydenv2710-debug/Planning/actions/runs/45818102553",
+  "seconds": 5.5
+}
